@@ -42,13 +42,9 @@ function Write-MiaoUtf8FileAtomic {
         [System.IO.File]::WriteAllText($temporaryPath, $Content, $script:Utf8NoBom)
 
         if ([System.IO.File]::Exists($Path)) {
-            try {
-                [System.IO.File]::Replace($temporaryPath, $Path, $null)
-            }
-            catch {
-                [System.IO.File]::Copy($temporaryPath, $Path, $true)
-                [System.IO.File]::Delete($temporaryPath)
-            }
+            # If replacement fails, preserve the original and report the error.
+            # Copy(overwrite) would destroy the atomicity guarantee.
+            [System.IO.File]::Replace($temporaryPath, $Path, [System.Management.Automation.Language.NullString]::Value)
         }
         else {
             [System.IO.File]::Move($temporaryPath, $Path)

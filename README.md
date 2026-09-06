@@ -8,7 +8,7 @@ Cette architecture prépare l’ajout de nouveaux widgets - notamment le tracker
 
 1. Double-cliquer sur `Lancer MIAO.bat`.
 2. Utiliser `http://127.0.0.1:8974/` comme source navigateur OBS.
-3. Utiliser `http://127.0.0.1:8974/control` comme dock navigateur OBS.
+3. Utiliser `http://127.0.0.1:8974/control/broadcast` comme dock navigateur OBS. L'ancienne URL `/control` reste compatible.
 
 Les URL historiques restent compatibles avec M.I.A.O. 3. Le serveur écoute uniquement sur `127.0.0.1` et ne transmet aucune donnée sur Internet.
 
@@ -23,7 +23,7 @@ Chaque sous-dossier de `modules/` possède son propre manifeste, son serveur év
 | `broadcast` | inclus | radio, transmission, apparence et commandes Moobot |
 | `tunic` | prévu | tracker de progression Archipelago pour les viewers |
 
-Le noyau découvre les modules actifs au démarrage. Le dock construit ensuite ses onglets à partir de leurs manifestes ; il n’a aucune connaissance codée en dur de Broadcast ou de Tunic.
+Le noyau découvre les modules actifs au démarrage. Chaque module dispose de son propre widget et de son propre dock `/control/<id>`, à ajouter séparément dans OBS. Chaque dock charge uniquement les onglets et ressources de son module ; les autres docks peuvent être ouverts ou fermés indépendamment. Le serveur et la coquille HTML restent partagés.
 
 ## Données locales
 

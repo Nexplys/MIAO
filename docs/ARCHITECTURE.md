@@ -10,7 +10,7 @@ flowchart TD
     C --> R[Routeur local]
     C --> M[Chargeur de modules]
     M --> B[Module Broadcast]
-    R --> D[Dock commun OBS]
+    R --> D[Docks OBS indépendants]
     R --> W[Widgets des modules]
 ```
 
@@ -47,7 +47,8 @@ Le noyau possède uniquement les routes communes :
 
 | Route | Propriétaire |
 | --- | --- |
-| `/control`, `/miao-control.html` | coquille du dock |
+| `/control`, `/miao-control.html` | dock historique du module déclaré par défaut |
+| `/control/<id>` | dock indépendant d'un module actif |
 | `/assets/api.js`, `/assets/control.js`, `/assets/control.css` | ressources communes |
 | `/api/modules` | description publique des interfaces modulaires |
 | `/health` | état de l’application et liste des modules actifs |
@@ -57,9 +58,13 @@ Les routes `/`, `/miao-widget.html` et les anciennes ressources `/assets/widget*
 
 Le serveur sait envoyer des fichiers texte ou binaires. Un futur module peut donc servir ses images PNG sans encodage Base64 ni ajout de route au noyau.
 
-## Dock composable
+## Docks indépendants
 
-`public/control.html` est une coquille vide. Au chargement, il demande `/api/modules`, récupère les feuilles de style, fragments HTML et scripts déclarés, puis crée des onglets qualifiés par l’identifiant du module.
+`public/control.html` est une coquille réutilisée par chaque dock. Au chargement, elle demande `/api/modules`, sélectionne le module indiqué dans l'URL, puis charge uniquement ses styles, fragments et scripts. Une panne de chargement dans un dock n'empêche pas l'ouverture d'un autre. L'onglet mémorisé est propre à chaque module.
+
+Un seul manifeste peut déclarer `control.legacyDefault: true` pour les URL historiques `/control` et `/miao-control.html`. Broadcast porte cette déclaration. Les nouveaux modules utilisent directement `/control/<id>`. Les préfixes `/control/`, `/modules/` et `/api/` sont réservés et ne peuvent pas être revendiqués comme alias de widget.
+
+L'indépendance concerne les pages OBS et l'état fonctionnel, pas des processus séparés : les hooks serveur restent exécutés dans un processus commun. La validation et l'initialisation du serveur demeurent globales ; un manifeste actif invalide empêche le démarrage. Les hooks doivent rester courts et ne pas effectuer d'attente réseau synchrone.
 
 Les identifiants HTML internes doivent eux aussi être préfixés (`broadcast-…`, `tunic-…`) pour éviter toute collision dans le document assemblé. Les URL fournies au navigateur sont validées une première fois au démarrage par PowerShell et une seconde fois dans le dock.
 
@@ -95,3 +100,9 @@ L’absence temporaire de Moobot ne bloque plus l’application. Broadcast conse
 - erreurs de mise à jour isolées par module afin de préserver la boucle principale.
 
 Le détail du format de manifeste et des hooks se trouve dans [MODULES.md](MODULES.md).
+
+## Transport et persistance
+
+Les lectures et écritures TCP sont asynchrones et suivies par connexion. La boucle accepte au plus huit nouveaux clients par tour, avec 64 connexions actives maximum. Une lecture ou une écriture expire après trois secondes au total, même si quelques octets continuent d'arriver. Les en-têtes sont limités à 16 Kio et les corps à 256 Kio. Les requêtes utilisent Content-Length ; le transfert chunked et le pipelining ne sont pas pris en charge. Chaque réponse ferme sa connexion après la fin de l'écriture. Les handlers et lectures de fichiers restent synchrones : ce changement supprime l'attente réseau dans la boucle, sans transformer les modules en tâches parallèles.
+
+Les sauvegardes utilisent un fichier temporaire voisin puis File.Replace pour une destination existante, ou File.Move pour une nouvelle destination. Le paramètre de sauvegarde nul est transmis avec NullString pour PowerShell 5.1. Si le remplacement échoue, l'erreur est remontée et le temporaire supprimé ; aucune copie avec écrasement n'est tentée. L'ancien fichier est conservé.

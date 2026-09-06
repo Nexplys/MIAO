@@ -7,7 +7,7 @@ modules/exemple/
 ├── module.json
 ├── config/                    Valeurs distribuées, jamais les données utilisateur
 ├── public/
-│   ├── control/               Fragments ajoutés au dock commun
+│   ├── control/               Fragments du dock propre au module
 │   ├── css/
 │   ├── images/
 │   ├── js/
@@ -65,9 +65,10 @@ Seul `module.json` est obligatoire. Un module sans interface publique peut omett
 | `updateIntervalMs` | entier compris entre 50 et 60 000 ms |
 | `public.root` | dossier auquel toutes les ressources web sont confinées |
 | `public.aliases` | routes courtes facultatives, uniques et non réservées |
-| `control` | ressources et onglets injectés dans le dock commun |
+| `control` | ressources et onglets du dock propre au module, `/control/<id>` |
+| `control.legacyDefault` | booléen facultatif, faux par défaut ; un seul module peut conserver les anciennes URL du dock |
 
-Les chemins utilisent `/` dans le JSON. Une ressource de dock doit commencer par `/modules/<id>/` et exister au démarrage. Les alias ne peuvent pas utiliser `/api/`, `/modules/` ni une route centrale.
+Les chemins utilisent `/` dans le JSON. Une ressource de dock doit commencer par `/modules/<id>/` et exister au démarrage. Les alias ne peuvent pas utiliser `/api/`, `/modules/`, `/control/` ni une route centrale. Le noyau fournit automatiquement `/control/<id>` pour un module actif déclarant une interface de contrôle : aucun fichier HTML de coquille ne doit être dupliqué dans le module.
 
 ## Hooks PowerShell
 
@@ -101,6 +102,8 @@ Une route API nouvelle doit être préfixée par `/api/<id>/`. Broadcast est la 
 
 ## Interface du dock
 
+Chaque widget est une source navigateur OBS distincte, et chaque dock est ajouté séparément dans les docks navigateur personnalisés. Par exemple : widget `/exemple`, dock `/control/exemple`. Le dock ne charge jamais les scripts des autres modules. Les onglets éventuels organisent uniquement les réglages de ce module.
+
 - Préfixer chaque `id` HTML par l’identifiant du module.
 - Limiter les fragments à leur contenu : aucun `<html>`, `<head>`, script ou style inline.
 - Charger les scripts et styles par le manifeste.
@@ -123,6 +126,6 @@ Avant d’intégrer un module :
 
 1. lancer `tests/run-all.ps1` ;
 2. vérifier son widget dans une vraie source navigateur OBS ;
-3. vérifier ses onglets avec les autres modules actifs ;
+3. ouvrir son dock et celui de Broadcast séparément ; vérifier que fermer l'un ne gêne pas l'autre ;
 4. tester son démarrage sans sa source externe éventuelle ;
 5. documenter ses routes, ses fichiers runtime et sa procédure de mise à jour.

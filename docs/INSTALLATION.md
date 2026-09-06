@@ -73,14 +73,14 @@ Un chemin OBS non standard peut être fourni avec `-ObsPath`.
 - images par seconde : `30`
 - **Fichier local** : désactivé
 
-### Dock commun
+### Dock Broadcast
 
 Dans **Affichage → Docks → Docks de navigateur personnalisés** :
 
 - nom : `MIAO - Console de bord`
-- URL : `http://127.0.0.1:8974/control`
+- URL : `http://127.0.0.1:8974/control/broadcast`
 
-Les onglets sont ajoutés automatiquement par les modules actifs.
+L'ancienne URL `http://127.0.0.1:8974/control` reste compatible avec Broadcast. Pour chaque nouveau module, ajouter un dock navigateur séparé avec `/control/<id>` et une source navigateur séparée pour son widget. Chaque dock n'affiche que les commandes de son module ; il peut être déplacé ou fermé indépendamment.
 
 ## Raccourcis Moobot Assistant
 

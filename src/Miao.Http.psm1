@@ -1,106 +1,154 @@
 Set-StrictMode -Version 2.0
 
 $script:Utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+$script:Connections = @{}
+
+function New-MiaoHttpConnection {
+    param([Parameter(Mandatory = $true)][System.Net.Sockets.TcpClient]$Client)
+
+    $connection = [pscustomobject]@{
+        Client = $Client
+        Stream = $Client.GetStream()
+        Buffer = [byte[]]::new(16384)
+        Input = [System.IO.MemoryStream]::new()
+        ReadOperation = $null
+        WriteOperation = $null
+        Output = $null
+        HeaderLength = -1
+        ContentLength = 0
+        Request = $null
+        Phase = "reading"
+        DeadlineUtc = [System.DateTime]::UtcNow.AddSeconds(3)
+    }
+    $script:Connections[$Client] = $connection
+    return $connection
+}
+
+function Close-MiaoHttpConnection {
+    param([Parameter(Mandatory = $true)]$Connection)
+
+    $Connection.Client.Close()
+    # Closing the socket completes any outstanding asynchronous operation.
+    foreach ($kind in @("Read", "Write")) {
+        $operation = $Connection."$($kind)Operation"
+        if ($null -ne $operation) {
+            try {
+                if ($kind -eq "Read") { [void]$Connection.Stream.EndRead($operation) }
+                else { $Connection.Stream.EndWrite($operation) }
+            }
+            catch { }
+            $Connection."$($kind)Operation" = $null
+        }
+    }
+    $Connection.Input.Dispose()
+    $Connection.Output = $null
+    $Connection.Phase = "closed"
+    [void]$script:Connections.Remove($Connection.Client)
+}
+
+function Complete-MiaoHttpResponse {
+    param([Parameter(Mandatory = $true)]$Connection)
+
+    if ($null -eq $Connection.WriteOperation -or
+        -not $Connection.WriteOperation.IsCompleted) {
+        return $false
+    }
+    $operation = $Connection.WriteOperation
+    $Connection.WriteOperation = $null
+    $Connection.Stream.EndWrite($operation)
+    return $true
+}
 
 function Receive-MiaoHttpRequest {
-    [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true)]
-        [System.Net.Sockets.TcpClient]$Client,
-
-        [int]$MaximumBodyLength = 262144
+        [Parameter(Mandatory = $true)]$Connection,
+        [int]$MaximumBodyLength = 262144,
+        [int]$MaximumHeaderLength = 16384
     )
 
-    $reader = $null
-
-    try {
-        $stream = $Client.GetStream()
-        $stream.ReadTimeout = 3000
-        $reader = [System.IO.StreamReader]::new(
-            $stream,
-            [System.Text.Encoding]::ASCII,
-            $false,
-            4096,
-            $true
+    if ($null -eq $Connection.ReadOperation) {
+        $Connection.ReadOperation = $Connection.Stream.BeginRead(
+            $Connection.Buffer, 0, $Connection.Buffer.Length, $null, $null
         )
+        return $null
+    }
+    if (-not $Connection.ReadOperation.IsCompleted) { return $null }
 
-        $requestLine = $reader.ReadLine()
-        if ([string]::IsNullOrWhiteSpace($requestLine)) {
-            throw "Requete HTTP vide."
-        }
+    $operation = $Connection.ReadOperation
+    $Connection.ReadOperation = $null
+    $count = $Connection.Stream.EndRead($operation)
+    if ($count -eq 0) { throw "Connexion fermee avant la fin de la requete." }
+    $Connection.Input.Write($Connection.Buffer, 0, $count)
 
-        $requestParts = $requestLine.Split(' ')
-        if ($requestParts.Length -lt 2) {
-            throw "Ligne de requete HTTP invalide."
-        }
-
-        $headers = @{}
-        while ($true) {
-            $line = $reader.ReadLine()
-            if ([string]::IsNullOrEmpty($line)) {
+    if ($Connection.HeaderLength -lt 0) {
+        $bytes = $Connection.Input.GetBuffer()
+        $start = [System.Math]::Max(0, [int]$Connection.Input.Length - $count - 3)
+        for ($i = $start; $i -le $Connection.Input.Length - 4; $i++) {
+            if ($bytes[$i] -eq 13 -and $bytes[$i + 1] -eq 10 -and
+                $bytes[$i + 2] -eq 13 -and $bytes[$i + 3] -eq 10) {
+                $Connection.HeaderLength = $i + 4
                 break
             }
-
-            $separator = $line.IndexOf(':')
-            if ($separator -gt 0) {
-                $name = $line.Substring(0, $separator).Trim().ToLowerInvariant()
-                $value = $line.Substring($separator + 1).Trim()
-                $headers[$name] = $value
-            }
         }
+        if ($Connection.HeaderLength -gt $MaximumHeaderLength -or
+            ($Connection.HeaderLength -lt 0 -and
+             $Connection.Input.Length -ge $MaximumHeaderLength)) {
+            throw "En-tetes HTTP trop volumineux."
+        }
+        if ($Connection.HeaderLength -lt 0) { return $null }
 
-        $contentLength = 0
+        $headerText = [System.Text.Encoding]::ASCII.GetString(
+            $bytes, 0, $Connection.HeaderLength - 4
+        )
+        $lines = $headerText -split "\r\n"
+        $parts = $lines[0] -split " "
+        if ($parts.Count -ne 3 -or $parts[0] -cnotmatch '^[A-Z]+$' -or
+            $parts[1] -notmatch '^/[^#\s]*$' -or
+            $parts[2] -notmatch '^HTTP/1\.[01]$') {
+            throw "Ligne de requete HTTP invalide."
+        }
+        $headers = @{}
+        foreach ($line in @($lines | Select-Object -Skip 1)) {
+            $separator = $line.IndexOf(':')
+            if ($separator -le 0) { throw "En-tete HTTP invalide." }
+            $name = $line.Substring(0, $separator).ToLowerInvariant()
+            if ($name -notmatch '^[a-z0-9!#$%&''*+.^_|~-]+$' -or
+                $headers.ContainsKey($name)) {
+                throw "En-tete HTTP invalide ou duplique."
+            }
+            $headers[$name] = $line.Substring($separator + 1).Trim()
+        }
+        if ($headers.ContainsKey("transfer-encoding")) {
+            throw "Transfer-Encoding non pris en charge."
+        }
+        $length = 0
         if ($headers.ContainsKey("content-length")) {
-            if (-not [int]::TryParse($headers["content-length"], [ref]$contentLength)) {
+            if ($headers["content-length"] -notmatch '^\d+$' -or
+                -not [int]::TryParse($headers["content-length"], [ref]$length)) {
                 throw "Content-Length invalide."
             }
         }
-
-        if ($contentLength -lt 0 -or $contentLength -gt $MaximumBodyLength) {
-            throw "Corps de requete trop volumineux."
-        }
-
-        $body = ""
-        if ($contentLength -gt 0) {
-            $builder = [System.Text.StringBuilder]::new()
-            $buffer = [char[]]::new([System.Math]::Min(4096, $contentLength))
-            $remaining = $contentLength
-
-            while ($remaining -gt 0) {
-                $wanted = [System.Math]::Min($buffer.Length, $remaining)
-                $read = $reader.Read($buffer, 0, $wanted)
-                if ($read -le 0) {
-                    break
-                }
-
-                [void]$builder.Append($buffer, 0, $read)
-                $remaining -= $read
-            }
-
-            if ($remaining -ne 0) {
-                throw "Corps de requete incomplet."
-            }
-
-            $body = $builder.ToString()
-        }
-
-        $target = $requestParts[1]
-        $uri = [System.Uri]::new("http://127.0.0.1$target")
-
-        return [pscustomobject]@{
-            Method = $requestParts[0].ToUpperInvariant()
+        if ($length -gt $MaximumBodyLength) { throw "Corps de requete trop volumineux." }
+        $Connection.ContentLength = $length
+        $uri = [System.Uri]::new("http://127.0.0.1$($parts[1])")
+        $Connection.Request = [pscustomobject]@{
+            Method = $parts[0]
             Path = $uri.AbsolutePath
             Headers = $headers
-            Body = $body
-            Reader = $reader
+            Body = ""
         }
     }
-    catch {
-        if ($null -ne $reader) {
-            $reader.Dispose()
-        }
-        throw
+
+    $expectedLength = $Connection.HeaderLength + $Connection.ContentLength
+    if ($Connection.Input.Length -gt $expectedLength) {
+        throw "Donnees inattendues apres la requete."
     }
+    if ($Connection.Input.Length -lt $expectedLength) { return $null }
+
+    $Connection.Request.Body = $script:Utf8NoBom.GetString(
+        $Connection.Input.GetBuffer(), $Connection.HeaderLength, $Connection.ContentLength
+    )
+    return $Connection.Request
 }
 
 function Send-MiaoBytesResponse {
@@ -124,11 +172,19 @@ function Send-MiaoBytesResponse {
               "Connection: close`r`n`r`n"
     $headerBytes = [System.Text.Encoding]::ASCII.GetBytes($header)
 
-    $stream.Write($headerBytes, 0, $headerBytes.Length)
-    if ($BodyBytes.Length -gt 0) {
-        $stream.Write($BodyBytes, 0, $BodyBytes.Length)
+    if (-not $script:Connections.ContainsKey($Client)) {
+        throw "Connexion HTTP non enregistree."
     }
-    $stream.Flush()
+    $connection = $script:Connections[$Client]
+    if ($connection.Phase -eq "writing") { throw "Reponse HTTP deja envoyee." }
+    $connection.Output = [byte[]]::new($headerBytes.Length + $BodyBytes.Length)
+    [System.Buffer]::BlockCopy($headerBytes, 0, $connection.Output, 0, $headerBytes.Length)
+    [System.Buffer]::BlockCopy($BodyBytes, 0, $connection.Output, $headerBytes.Length, $BodyBytes.Length)
+    $connection.Phase = "writing"
+    $connection.DeadlineUtc = [System.DateTime]::UtcNow.AddSeconds(3)
+    $connection.WriteOperation = $stream.BeginWrite(
+        $connection.Output, 0, $connection.Output.Length, $null, $null
+    )
 }
 
 function Send-MiaoHttpResponse {
@@ -197,6 +253,9 @@ function ConvertFrom-MiaoEncodedJson {
 }
 
 Export-ModuleMember -Function `
+    New-MiaoHttpConnection, `
+    Close-MiaoHttpConnection, `
+    Complete-MiaoHttpResponse, `
     Receive-MiaoHttpRequest, `
     Send-MiaoBytesResponse, `
     Send-MiaoHttpResponse, `

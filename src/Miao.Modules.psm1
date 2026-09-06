@@ -238,6 +238,7 @@ function Read-MiaoModuleManifest {
             $file = [string](Get-MiaoManifestValue $alias "file" "")
             if ($route -notmatch '^/[^\s?#\\]*$' -or
                 $route.StartsWith("/modules/", [System.StringComparison]::Ordinal) -or
+                $route.StartsWith("/control/", [System.StringComparison]::Ordinal) -or
                 $route.StartsWith("/api/", [System.StringComparison]::Ordinal) -or
                 $script:ReservedAliasRoutes -contains $route) {
                 throw "Alias public de module invalide ou reserve : $route"
@@ -258,6 +259,9 @@ function Read-MiaoModuleManifest {
 
     $control = Get-MiaoManifestValue $manifest "control" $null
     if ($null -ne $control) {
+        if ((Get-MiaoManifestValue $control "legacyDefault" $false) -isnot [bool]) {
+            throw "La propriete control.legacyDefault doit etre un booleen."
+        }
         if ($null -eq $publicRoot) {
             throw "Le module $id declare un dock sans dossier public."
         }
@@ -344,6 +348,7 @@ function Get-MiaoModuleDefinitions {
 
     $definitions = @()
     $claimedAliases = @{}
+    $legacyDefaultId = ""
     $moduleDirectories = @(
         [System.IO.Directory]::GetDirectories($modulesPath) |
             Sort-Object { [System.IO.Path]::GetFileName($_) }
@@ -358,6 +363,12 @@ function Get-MiaoModuleDefinitions {
         $manifest = Read-MiaoModuleManifest -Path $manifestPath
         if (-not [bool](Get-MiaoManifestValue $manifest "enabled" $true)) {
             continue
+        }
+
+        $control = Get-MiaoManifestValue $manifest "control" $null
+        if ([bool](Get-MiaoManifestValue $control "legacyDefault" $false)) {
+            if ($legacyDefaultId) { throw "Plusieurs docks par defaut sont declares." }
+            $legacyDefaultId = [string]$manifest.id
         }
 
         $publicDefinition = Get-MiaoManifestValue $manifest "public" $null
@@ -648,6 +659,8 @@ function Get-MiaoClientModuleDescriptors {
             name = $module.Name
             version = $module.Version
             control = [ordered]@{
+                url = "/control/$($module.Id)"
+                legacyDefault = [bool](Get-MiaoManifestValue $control "legacyDefault" $false)
                 styles = $styles
                 scripts = $scripts
                 tabs = $tabs

@@ -7,6 +7,7 @@
   const loadedStyles = new Map();
   const loadedScripts = new Map();
   const moduleInitializers = new Map();
+  let activeModuleId = "";
 
   function setStatus(message, type = "") {
     statusElement.textContent = message;
@@ -95,7 +96,7 @@
     document.querySelectorAll("[data-control-panel]").forEach((panel) => {
       panel.classList.toggle("active", panel.dataset.controlPanel === tabKey);
     });
-    if (found) sessionStorage.setItem("miao-active-tab", tabKey);
+    if (found) sessionStorage.setItem(`miao-active-tab:${activeModuleId}`, tabKey);
     return found;
   }
 
@@ -145,15 +146,23 @@
     try {
       const result = await window.MiaoApi.getJson("/api/modules");
       const modules = Array.isArray(result.modules) ? result.modules : [];
-      if (modules.length === 0) {
-        throw new Error("Aucun module ne fournit d’interface de contrôle.");
+      const path = window.location.pathname;
+      const match = /^\/control\/([a-z][a-z0-9-]*)\/?$/.exec(path);
+      const legacy = path === "/control" || path === "/miao-control.html";
+      const selected = match
+        ? modules.filter((module) => module.id === match[1])
+        : legacy ? modules.filter((module) => module.control?.legacyDefault === true) : [];
+      if (selected.length !== 1) {
+        throw new Error("Ce dock est indisponible ou son module est désactivé.");
       }
+      const moduleDefinition = selected[0];
+      activeModuleId = moduleDefinition.id;
+      document.title = `M.I.A.O. - ${moduleDefinition.name}`;
+      document.querySelector("h1").textContent = `M.I.A.O. // ${moduleDefinition.name}`;
+      document.querySelector(".subtitle").textContent = "Pupitre indépendant du module.";
+      await createModuleInterface(moduleDefinition);
 
-      for (const moduleDefinition of modules) {
-        await createModuleInterface(moduleDefinition);
-      }
-
-      const preferredTab = sessionStorage.getItem("miao-active-tab");
+      const preferredTab = sessionStorage.getItem(`miao-active-tab:${activeModuleId}`);
       const firstTab = document.querySelector("[data-control-tab]")?.dataset.controlTab;
       if (!preferredTab || !activateTab(preferredTab)) activateTab(firstTab);
       setStatus("Console connectée.", "ok");

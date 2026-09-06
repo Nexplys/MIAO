@@ -18,4 +18,8 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 & (Join-Path $root "tests\Miao.Tests.ps1")
+foreach ($suite in @("dock.test.js", "http.integration.test.js")) {
+    & $node.Path (Join-Path $root "tests\$suite")
+    if ($LASTEXITCODE -ne 0) { throw "La suite $suite a echoue." }
+}
 Write-Host "OK - Toutes les suites M.I.A.O. sont valides." -ForegroundColor Green

@@ -187,11 +187,8 @@ const moduleDefinitions = fs.readdirSync(modulesDirectory, { withFileTypes: true
     return definition;
   });
 
-assert.deepEqual(
-  moduleDefinitions.map((definition) => definition.manifest.id),
-  ["broadcast"],
-  "La version 4.0 doit commencer avec le seul module Broadcast"
-);
+assert.ok(moduleDefinitions.some((definition) => definition.manifest.id === "broadcast"),
+  "Le module Broadcast doit rester disponible");
 
 const broadcast = moduleDefinitions.find((definition) => definition.manifest.id === "broadcast");
 const broadcastRelative = (relativePath) => toPosix(path.relative(root, path.join(broadcast.moduleRoot, relativePath)));

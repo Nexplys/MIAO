@@ -1,5 +1,15 @@
 # Journal des versions
 
+## 4.1.0 - Docks indépendants et fiabilité
+
+- dock séparé pour chaque module via `/control/<id>`, avec chargement exclusif de ses ressources ;
+- conservation de `/control` et `/miao-control.html` pour Broadcast ;
+- lectures et écritures HTTP asynchrones, délais absolus et nombre de connexions bornés ;
+- validation des tailles, des en-têtes et des corps HTTP avant routage ;
+- correction du remplacement atomique sous Windows PowerShell 5.1 et conservation de l'ancien fichier en cas d'échec ;
+- tests HTTP réels avec trois modules, clients lents, fichiers binaires et mutations Unicode ;
+- tests d'isolation des docks et de sauvegarde sur fichier verrouillé.
+
 ## 4.0.0 - Architecture modulaire
 
 - séparation du noyau technique et des fonctionnalités de stream ;

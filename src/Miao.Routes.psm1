@@ -42,6 +42,15 @@ function Invoke-MiaoRoute {
     $staticRoute = Get-MiaoCoreStaticRoute `
         -Path $Request.Path `
         -RootPath $ApplicationContext.RootPath
+    if ($Request.Path -cmatch '^/control/([a-z][a-z0-9-]*)/?$') {
+        $dockId = $Matches[1]
+        $dock = @(Get-MiaoClientModuleDescriptors -Modules $ApplicationContext.Modules |
+            Where-Object { $_.id -ceq $dockId })
+        if ($dock.Count -gt 0) {
+            $staticRoute = Get-MiaoCoreStaticRoute -Path "/control" `
+                -RootPath $ApplicationContext.RootPath
+        }
+    }
     if ($null -eq $staticRoute) {
         $staticRoute = Resolve-MiaoModuleStaticRoute `
             -RequestPath $Request.Path `
@@ -113,12 +122,11 @@ function Invoke-MiaoRoute {
 function Invoke-MiaoClient {
     param(
         $Client,
+        $Request,
         $ApplicationContext
     )
 
-    $request = $null
     try {
-        $request = Receive-MiaoHttpRequest -Client $Client
         Invoke-MiaoRoute `
             -Request $request `
             -ApplicationContext $ApplicationContext `
@@ -137,12 +145,6 @@ function Invoke-MiaoClient {
         catch {
             # The browser may already have closed the connection.
         }
-    }
-    finally {
-        if ($null -ne $request -and $null -ne $request.Reader) {
-            $request.Reader.Dispose()
-        }
-        $Client.Close()
     }
 }
 

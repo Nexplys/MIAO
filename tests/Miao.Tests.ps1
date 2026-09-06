@@ -162,6 +162,21 @@ Export-ModuleMember -Function Initialize-Example
     Write-MiaoUtf8FileAtomic -Path $testFile -Content "seconde version"
     Assert-Equal -Actual (Read-MiaoUtf8File -Path $testFile) -Expected "seconde version" -Message "Ecriture atomique incorrecte"
 
+    # A reader allowing writes but not deletion prevents atomic replacement.
+    # The writer must fail without falling back to overwriting the old data.
+    $lockedReader = [System.IO.File]::Open($testFile, "Open", "Read", "ReadWrite")
+    $replacementFailed = $false
+    try {
+        try { Write-MiaoUtf8FileAtomic -Path $testFile -Content "ne pas ecraser" }
+        catch { $replacementFailed = $true }
+        Assert-Equal -Actual $replacementFailed -Expected $true -Message "Le remplacement verrouille doit echouer"
+        Assert-Equal -Actual (Read-MiaoUtf8File -Path $testFile) -Expected "seconde version" -Message "Ancien contenu perdu apres echec"
+    }
+    finally { $lockedReader.Dispose() }
+    Assert-Equal -Actual @([System.IO.Directory]::GetFiles($temporaryDirectory, ".atomic.txt.*.tmp")).Count -Expected 0 -Message "Fichier temporaire non nettoye"
+    Write-MiaoUtf8FileAtomic -Path $testFile -Content "apres deverrouillage"
+    Assert-Equal -Actual (Read-MiaoUtf8File -Path $testFile) -Expected "apres deverrouillage" -Message "Reprise apres verrouillage impossible"
+
     $songSourceFile = Join-Path $temporaryDirectory "test.song-player.current.txt"
     Write-MiaoUtf8FileAtomic `
         -Path $songSourceFile `

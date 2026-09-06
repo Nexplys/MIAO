@@ -1,6 +1,7 @@
 Set-StrictMode -Version 2.0
 
 Import-Module (Join-Path $PSScriptRoot "Miao.Files.psm1") -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot "Miao.Http.psm1") -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot "Miao.Modules.psm1") -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot "Miao.Routes.psm1") -ErrorAction Stop
 
@@ -71,6 +72,7 @@ function Start-MiaoApplication {
         -ModuleOptions $ModuleOptions
 
     $listener = $null
+    $connections = [System.Collections.ArrayList]::new()
     try {
         $listener = [System.Net.Sockets.TcpListener]::new(
             [System.Net.IPAddress]::Loopback,
@@ -88,15 +90,58 @@ function Start-MiaoApplication {
         while ($true) {
             Update-MiaoApplicationModules -ApplicationContext $context
 
-            while ($listener.Pending()) {
+            # Bound accepted clients and work per tick. Slow readers/writers
+            # keep their own asynchronous operation, never the module loop.
+            for ($accepted = 0; $accepted -lt 8 -and $listener.Pending(); $accepted++) {
                 $client = $listener.AcceptTcpClient()
-                Invoke-MiaoClient -Client $client -ApplicationContext $context
+                if ($connections.Count -ge 64) {
+                    $client.Close()
+                    continue
+                }
+                [void]$connections.Add((New-MiaoHttpConnection -Client $client))
+            }
+
+            foreach ($connection in @($connections.ToArray())) {
+                try {
+                    if ([System.DateTime]::UtcNow -ge $connection.DeadlineUtc) {
+                        Close-MiaoHttpConnection -Connection $connection
+                    }
+                    elseif ($connection.Phase -eq "writing") {
+                        if (Complete-MiaoHttpResponse -Connection $connection) {
+                            Close-MiaoHttpConnection -Connection $connection
+                        }
+                    }
+                    else {
+                        $request = Receive-MiaoHttpRequest -Connection $connection
+                        if ($null -ne $request) {
+                            Invoke-MiaoClient -Client $connection.Client `
+                                -Request $request -ApplicationContext $context
+                        }
+                    }
+                }
+                catch {
+                    if ($connection.Phase -eq "reading") {
+                        try {
+                            Send-MiaoJsonResponse -Client $connection.Client `
+                                -StatusCode 400 -StatusText "Bad Request" `
+                                -Value @{ ok = $false; error = $_.Exception.Message }
+                        }
+                        catch { Close-MiaoHttpConnection -Connection $connection }
+                    }
+                    else { Close-MiaoHttpConnection -Connection $connection }
+                }
+                if ($connection.Phase -eq "closed") {
+                    [void]$connections.Remove($connection)
+                }
             }
 
             Start-Sleep -Milliseconds 20
         }
     }
     finally {
+        foreach ($connection in @($connections.ToArray())) {
+            Close-MiaoHttpConnection -Connection $connection
+        }
         if ($null -ne $listener) {
             $listener.Stop()
         }

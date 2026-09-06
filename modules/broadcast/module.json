@@ -22,6 +22,7 @@
     ]
   },
   "control": {
+    "legacyDefault": true,
     "styles": [
       "/modules/broadcast/css/control.css"
     ],

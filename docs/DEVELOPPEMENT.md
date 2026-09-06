@@ -25,6 +25,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Miao.Tests.ps1
 
 GitHub Actions exécute la suite complète sous Windows à chaque push et pour chaque pull request vers `main`.
 
+La suite comprend aussi `tests/dock.test.js` (chargement isolé du code du dock dans un DOM simulé) et `tests/http.integration.test.js` (vrai serveur PowerShell sur un port temporaire avec trois modules). Cette dernière vérifie les clients lents, les délais, les requêtes invalides, les données binaires, l'Unicode et la continuité des mises à jour. Elle utilise une copie temporaire, ne lit pas les données personnelles et n'envoie aucun raccourci Moobot. Les tests de fichiers vérifient également l'échec d'un remplacement verrouillé sans perte de l'ancien contenu.
+
 Les contrats vérifient notamment les manifestes, l’isolation des chemins publics, les alias, les fragments du dock, les 42 réglages Broadcast, les huit actions Moobot, la syntaxe JavaScript, l’ASCII PowerShell, l’arborescence racine figée et l’absence de chemin utilisateur figé.
 
 ## Ajouter un module
@@ -82,7 +84,7 @@ L’archive reproduit directement l’arborescence du dépôt, sans dossier comp
 
 ## Vérifications manuelles Windows
 
-1. Démarrer M.I.A.O. sans Moobot et vérifier que `/health` et `/control` répondent.
+1. Démarrer M.I.A.O. sans Moobot et vérifier que `/health`, `/control` et `/control/broadcast` répondent.
 2. Ouvrir Moobot et vérifier que le morceau apparaît sans relancer M.I.A.O.
 3. Vérifier `/`, `/miao-widget.html` et le dock existant dans OBS.
 4. Modifier rapidement plusieurs réglages et une transmission.
