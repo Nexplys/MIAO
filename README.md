@@ -4,13 +4,15 @@ M.I.A.O. 3 est un widget local pour OBS qui alterne une radio de bord et une tra
 
 ## Démarrage rapide
 
-1. Lancer `miao-clean-title.ps1` avec le fichier `.bat` habituel.
+1. Double-cliquer sur `Lancer MIAO.bat`.
 2. Utiliser `http://127.0.0.1:8974/` comme source navigateur OBS.
 3. Utiliser `http://127.0.0.1:8974/control` comme dock navigateur OBS.
 
 Les fichiers `miao-mission.txt` et `miao-settings.json` sont créés automatiquement à côté du lanceur. Ils contiennent les données personnelles de l’installation et ne font volontairement pas partie du paquet distribué.
 
 Le guide complet se trouve dans [docs/INSTALLATION.md](docs/INSTALLATION.md).
+
+M.I.A.O. détecte automatiquement le fichier de titre créé par Moobot Assistant, sans nom de chaîne configuré dans le projet. Il ne modifie pas le dossier de Moobot : le titre nettoyé est conservé uniquement en mémoire par le serveur local.
 
 ## Principes du projet
 
@@ -24,9 +26,10 @@ Le guide complet se trouve dans [docs/INSTALLATION.md](docs/INSTALLATION.md).
 ## Structure
 
 ```text
-MIAO-Widget/
-├── miao-clean-title.ps1       Point d’entrée stable
-├── VERSION                     Version applicative unique
+MIAO/
+├── Lancer MIAO.bat            Lanceur utilisateur
+├── miao-clean-title.ps1       Point d’entrée PowerShell stable
+├── VERSION                    Version applicative unique
 ├── config/                    Schémas et valeurs distribuées
 ├── public/                    Interfaces servies à OBS
 ├── src/                       Modules PowerShell

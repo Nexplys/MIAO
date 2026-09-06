@@ -6,6 +6,7 @@ Import-Module (Join-Path $root "src\Miao.Files.psm1") -Force
 Import-Module (Join-Path $root "src\Miao.Settings.psm1") -Force
 Import-Module (Join-Path $root "src\Miao.TitleCleaner.psm1") -Force
 Import-Module (Join-Path $root "src\Miao.Mission.psm1") -Force
+Import-Module (Join-Path $root "src\Miao.Moobot.psm1") -Force
 
 function Assert-Equal {
     param($Actual, $Expected, [string]$Message)
@@ -65,6 +66,51 @@ try {
     Write-MiaoUtf8FileAtomic -Path $testFile -Content "premiere version"
     Write-MiaoUtf8FileAtomic -Path $testFile -Content "seconde version"
     Assert-Equal -Actual (Read-MiaoUtf8File -Path $testFile) -Expected "seconde version" -Message "Ecriture atomique incorrecte"
+
+    $songSourceFile = Join-Path $temporaryDirectory "test.song-player.current.txt"
+    Write-MiaoUtf8FileAtomic `
+        -Path $songSourceFile `
+        -Content "Artiste - Titre (Official Music Video)"
+    $songState = [pscustomobject]@{
+        LastRawSong = $null
+        CurrentSong = ""
+    }
+    $songChanged = Update-MiaoSongTitle `
+        -State $songState `
+        -SourcePath $songSourceFile
+    Assert-Equal -Actual $songChanged -Expected $true -Message "Titre Moobot non detecte"
+    Assert-Equal -Actual $songState.CurrentSong -Expected "Artiste - Titre" -Message "Titre courant non nettoye"
+    Assert-Equal `
+        -Actual (Update-MiaoSongTitle -State $songState -SourcePath $songSourceFile) `
+        -Expected $false `
+        -Message "Titre Moobot inchange detecte a tort"
+    Assert-Equal `
+        -Actual @([System.IO.Directory]::GetFiles($temporaryDirectory, "*.song-player.*.txt")).Count `
+        -Expected 1 `
+        -Message "Le nettoyage ne doit creer aucun fichier Moobot"
+
+    $moobotDirectory = Join-Path $temporaryDirectory "moobot"
+    [void][System.IO.Directory]::CreateDirectory($moobotDirectory)
+    $olderSource = Join-Path $moobotDirectory "first.song-player.current.txt"
+    $newerSource = Join-Path $moobotDirectory "second.song-player.current.txt"
+    $legacyCleaned = Join-Path $moobotDirectory "second.song-player.current.cleaned.txt"
+    Write-MiaoUtf8FileAtomic -Path $olderSource -Content "Ancien titre"
+    Write-MiaoUtf8FileAtomic -Path $newerSource -Content "Titre recent"
+    Write-MiaoUtf8FileAtomic -Path $legacyCleaned -Content "Ancien fichier nettoye"
+    [System.IO.File]::SetLastWriteTimeUtc($olderSource, [System.DateTime]::UtcNow.AddMinutes(-2))
+    [System.IO.File]::SetLastWriteTimeUtc($newerSource, [System.DateTime]::UtcNow.AddMinutes(-1))
+
+    $detectedSource = Resolve-MiaoMoobotSource -DirectoryPath $moobotDirectory
+    Assert-Equal -Actual $detectedSource.Path -Expected $newerSource -Message "Mauvaise source Moobot detectee"
+    Assert-Equal -Actual $detectedSource.CandidateCount -Expected 2 -Message "Nombre de sources Moobot incorrect"
+
+    $selectedChannel = Resolve-MiaoMoobotSource `
+        -DirectoryPath $moobotDirectory `
+        -Channel "chaine_test"
+    Assert-Equal `
+        -Actual $selectedChannel.Path `
+        -Expected (Join-Path $moobotDirectory "chaine_test.song-player.current.txt") `
+        -Message "Selection explicite de chaine incorrecte"
 
     $defaultMissionFile = Join-Path $temporaryDirectory "default-mission.txt"
     $missionFile = Join-Path $temporaryDirectory "mission.txt"

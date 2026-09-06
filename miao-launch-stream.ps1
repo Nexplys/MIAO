@@ -1,5 +1,22 @@
+#Requires -Version 5.1
+
+[CmdletBinding()]
+param(
+    [string]$ObsPath = ""
+)
+
+Set-StrictMode -Version 2.0
+$ErrorActionPreference = "Stop"
+
 $cleanerPath = Join-Path $PSScriptRoot "miao-clean-title.ps1"
-$obsPath = "C:\Program Files\obs-studio\bin\64bit\obs64.exe"
+if ([string]::IsNullOrWhiteSpace($ObsPath)) {
+    if ([string]::IsNullOrWhiteSpace($env:ProgramFiles)) {
+        throw "La variable ProgramFiles est introuvable."
+    }
+
+    $ObsPath = Join-Path $env:ProgramFiles "obs-studio\bin\64bit\obs64.exe"
+}
+$ObsPath = [System.IO.Path]::GetFullPath($ObsPath)
 
 if (-not (Test-Path $cleanerPath)) {
     Add-Type -AssemblyName PresentationFramework
@@ -10,10 +27,10 @@ if (-not (Test-Path $cleanerPath)) {
     exit
 }
 
-if (-not (Test-Path $obsPath)) {
+if (-not (Test-Path $ObsPath)) {
     Add-Type -AssemblyName PresentationFramework
     [System.Windows.MessageBox]::Show(
-        "OBS est introuvable à l'adresse :`n$obsPath",
+        "OBS est introuvable a l'adresse :`n$ObsPath",
         "M.I.A.O."
     )
     exit
@@ -29,8 +46,8 @@ try {
         Select-Object -First 1
 
     if (-not $obs) {
-        $obs = Start-Process $obsPath `
-            -WorkingDirectory (Split-Path $obsPath) `
+        $obs = Start-Process $ObsPath `
+            -WorkingDirectory (Split-Path $ObsPath) `
             -PassThru
     }
 

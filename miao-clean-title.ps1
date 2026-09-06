@@ -2,48 +2,46 @@
 
 [CmdletBinding()]
 param(
-    [ValidatePattern('^[A-Za-z0-9_]+$')]
-    [string]$Channel = "nexplys",
+    [AllowEmptyString()]
+    [ValidatePattern('^$|^[A-Za-z0-9_]+$')]
+    [string]$Channel = "",
 
     [ValidateRange(1024, 65535)]
     [int]$Port = 8974,
 
-    [string]$SourcePath = "",
-
-    [string]$CleanPath = ""
+    [string]$SourcePath = ""
 )
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = "Stop"
 
 try {
-    $needsDefaultPath = (
-        [string]::IsNullOrWhiteSpace($SourcePath) -or
-        [string]::IsNullOrWhiteSpace($CleanPath)
-    )
-    if ($needsDefaultPath) {
+    if ([string]::IsNullOrWhiteSpace($SourcePath)) {
         if ([string]::IsNullOrWhiteSpace($env:APPDATA)) {
             throw "La variable APPDATA est introuvable."
         }
 
         $moobotFiles = Join-Path $env:APPDATA "moobot-assistant\User files"
-        if ([string]::IsNullOrWhiteSpace($SourcePath)) {
-            $SourcePath = Join-Path $moobotFiles "$Channel.song-player.current.txt"
+        $resolverModule = Join-Path $PSScriptRoot "src\Miao.Moobot.psm1"
+        if (-not [System.IO.File]::Exists($resolverModule)) {
+            throw "Le module de detection Moobot est introuvable."
         }
-        if ([string]::IsNullOrWhiteSpace($CleanPath)) {
-            $CleanPath = Join-Path $moobotFiles "$Channel.song-player.current.cleaned.txt"
+
+        Import-Module $resolverModule -Force
+        $resolution = Resolve-MiaoMoobotSource `
+            -DirectoryPath $moobotFiles `
+            -Channel $Channel
+        $SourcePath = $resolution.Path
+
+        if ($resolution.Mode -eq "automatic") {
+            Write-Host "Source Moobot detectee : $($resolution.SelectedName)" -ForegroundColor Cyan
+            if ($resolution.CandidateCount -gt 1) {
+                Write-Host "Plusieurs sources trouvees ; le fichier le plus recent est utilise." -ForegroundColor Yellow
+            }
         }
     }
 
     $SourcePath = [System.IO.Path]::GetFullPath($SourcePath)
-    $CleanPath = [System.IO.Path]::GetFullPath($CleanPath)
-    if ([string]::Equals(
-        $SourcePath,
-        $CleanPath,
-        [System.StringComparison]::OrdinalIgnoreCase
-    )) {
-        throw "Le fichier nettoye doit etre different du fichier source Moobot."
-    }
 
     $applicationModule = Join-Path $PSScriptRoot "src\Miao.App.psm1"
     if (-not [System.IO.File]::Exists($applicationModule)) {
@@ -54,7 +52,6 @@ try {
     Start-MiaoApplication `
         -RootPath $PSScriptRoot `
         -SourcePath $SourcePath `
-        -CleanPath $CleanPath `
         -Port $Port
 }
 catch {

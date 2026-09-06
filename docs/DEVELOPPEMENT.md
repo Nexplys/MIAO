@@ -22,6 +22,8 @@ node .\tests\contracts.test.js
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Miao.Tests.ps1
 ```
 
+La même commande est exécutée automatiquement par GitHub Actions à chaque push et pour chaque pull request vers `main`.
+
 ## Ajouter ou modifier un réglage
 
 1. Modifier `config/settings.schema.json`.

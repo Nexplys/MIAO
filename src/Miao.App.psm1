@@ -19,7 +19,6 @@ function New-MiaoContext {
     param(
         [Parameter(Mandatory = $true)][string]$RootPath,
         [Parameter(Mandatory = $true)][string]$SourcePath,
-        [Parameter(Mandatory = $true)][string]$CleanPath,
         [ValidateRange(1024, 65535)][int]$Port
     )
 
@@ -64,20 +63,21 @@ function New-MiaoContext {
     }
 
     $currentSong = ""
-    if ([System.IO.File]::Exists($SourcePath) -and
-        [System.IO.File]::Exists($CleanPath)) {
+    $lastRawSong = $null
+    if ([System.IO.File]::Exists($SourcePath)) {
         try {
-            $currentSong = (Read-MiaoUtf8File -Path $CleanPath).Trim()
+            $lastRawSong = Read-MiaoUtf8File -Path $SourcePath
+            $currentSong = Remove-MiaoTitleSuffix -Title $lastRawSong
         }
         catch {
             $currentSong = ""
+            $lastRawSong = $null
         }
     }
 
     return [pscustomobject]@{
         RootPath = $RootPath
         SourcePath = $SourcePath
-        CleanPath = $CleanPath
         MissionPath = $missionPath
         SettingsPath = $settingsPath
         Schema = $schema
@@ -85,7 +85,7 @@ function New-MiaoContext {
         PlayerActions = $playerActions
         Version = $version
         CurrentSong = $currentSong
-        LastRawSong = $null
+        LastRawSong = $lastRawSong
         Port = $Port
     }
 }
@@ -95,14 +95,12 @@ function Start-MiaoApplication {
     param(
         [Parameter(Mandatory = $true)][string]$RootPath,
         [Parameter(Mandatory = $true)][string]$SourcePath,
-        [Parameter(Mandatory = $true)][string]$CleanPath,
         [ValidateRange(1024, 65535)][int]$Port = 8974
     )
 
     $context = New-MiaoContext `
         -RootPath $RootPath `
         -SourcePath $SourcePath `
-        -CleanPath $CleanPath `
         -Port $Port
 
     $listener = [System.Net.Sockets.TcpListener]::new(
@@ -126,8 +124,7 @@ function Start-MiaoApplication {
             if ($now -ge $nextTitleCheck) {
                 [void](Update-MiaoSongTitle `
                     -State $context `
-                    -SourcePath $context.SourcePath `
-                    -CleanPath $context.CleanPath)
+                    -SourcePath $context.SourcePath)
                 $nextTitleCheck = $now.AddMilliseconds(500)
             }
 

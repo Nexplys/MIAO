@@ -31,8 +31,7 @@ function Update-MiaoSongTitle {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]$State,
-        [Parameter(Mandatory = $true)][string]$SourcePath,
-        [Parameter(Mandatory = $true)][string]$CleanPath
+        [Parameter(Mandatory = $true)][string]$SourcePath
     )
 
     try {
@@ -46,7 +45,6 @@ function Update-MiaoSongTitle {
         }
 
         $cleaned = Remove-MiaoTitleSuffix -Title $raw
-        Write-MiaoUtf8FileAtomic -Path $CleanPath -Content $cleaned
         $State.LastRawSong = $raw
         $State.CurrentSong = $cleaned
         return $true

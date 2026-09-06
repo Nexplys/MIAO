@@ -1,5 +1,15 @@
 # Journal des versions
 
+## 3.0.1 — Finalisation du déplacement
+
+- conservation du titre Moobot nettoyé uniquement en mémoire ;
+- arrêt de l’écriture du fichier `*.cleaned.txt` dans le dossier de Moobot Assistant ;
+- détection automatique de la source Moobot sans nom de chaîne personnel dans le code ;
+- ajout des deux lanceurs au paquet de distribution ;
+- correction et paramétrage du lanceur combiné M.I.A.O. + OBS ;
+- nettoyage des exclusions Git et ajout d’un contrôle continu sur Windows ;
+- ajout d’une procédure sûre pour retirer l’ancienne installation.
+
 ## 3.0.0 — Refonte maintenable
 
 - séparation du serveur, des fichiers, des réglages, du nettoyage des titres et des raccourcis en modules PowerShell ;

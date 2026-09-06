@@ -35,7 +35,8 @@ flowchart TD
 | `Miao.Files.psm1` | Lecture UTF-8 et écritures atomiques |
 | `Miao.Settings.psm1` | Schéma, migration, validation et persistance |
 | `Miao.Mission.psm1` | Initialisation, normalisation et sauvegarde de la transmission |
-| `Miao.TitleCleaner.psm1` | Nettoyage pur et surveillance du titre Moobot |
+| `Miao.Moobot.psm1` | Détection générique de la source Song Player |
+| `Miao.TitleCleaner.psm1` | Nettoyage en mémoire et surveillance du titre Moobot |
 | `Miao.Hotkeys.psm1` | Liste blanche et émission des raccourcis Song Player |
 
 ## Configuration pilotée par schéma
@@ -77,6 +78,8 @@ Les fichiers suivants sont créés à l’exécution, à côté du lanceur :
 - `miao-mission.txt`.
 
 Ils sont écrits par remplacement atomique afin de limiter le risque de corruption lors d’une fermeture brutale. Une migration de schéma et un fichier de réglages illisible déclenchent d’abord une copie de secours. Ces données et leurs sauvegardes ne doivent pas être ajoutées aux paquets de mise à jour.
+
+Le fichier brut du Song Player reste la propriété de Moobot Assistant. M.I.A.O. détecte automatiquement `*.song-player.current.txt` dans `%APPDATA%`, puis conserve le titre nettoyé dans son état en mémoire. Si plusieurs sources existent, la plus récemment modifiée est utilisée ; `-Channel` et `-SourcePath` permettent toujours une sélection explicite. Aucun fichier `*.cleaned.txt` n’est nécessaire ou créé.
 
 ## Règles d’évolution
 

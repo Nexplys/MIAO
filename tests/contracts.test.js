@@ -11,10 +11,12 @@ const readJson = (relativePath) => JSON.parse(read(relativePath));
 
 function walk(relativeDirectory) {
   const absoluteDirectory = path.join(root, relativeDirectory);
-  return fs.readdirSync(absoluteDirectory, { withFileTypes: true }).flatMap((entry) => {
-    const relativePath = path.join(relativeDirectory, entry.name);
-    return entry.isDirectory() ? walk(relativePath) : [relativePath];
-  });
+  return fs.readdirSync(absoluteDirectory, { withFileTypes: true })
+    .filter((entry) => !(entry.isDirectory() && [".git", "node_modules"].includes(entry.name)))
+    .flatMap((entry) => {
+      const relativePath = path.join(relativeDirectory, entry.name);
+      return entry.isDirectory() ? walk(relativePath) : [relativePath];
+    });
 }
 
 function compileJavaScript(relativePath) {
@@ -175,6 +177,23 @@ for (const route of [
 assert.ok(routeModule.includes('"/assets/widget-core.js"'), "Le noyau du widget doit être servi");
 assert.ok(routeModule.includes("$Context.Version"), "La route de santé doit utiliser VERSION");
 assert.ok(routeModule.includes("Test-MiaoMutationOrigin"), "Les mutations HTTP doivent vérifier leur origine");
+
+const titlePipeline = [
+  read("miao-clean-title.ps1"),
+  read("src/Miao.App.psm1"),
+  read("src/Miao.TitleCleaner.psm1")
+].join("\n");
+assert.equal(/CleanPath/.test(titlePipeline), false, "Le titre nettoyé doit rester en mémoire");
+assert.match(
+  read("miao-clean-title.ps1"),
+  /\[string\]\$Channel = ""/,
+  "Le lanceur ne doit imposer aucun nom de chaîne"
+);
+
+const releaseScript = read("tools/build-release.ps1");
+for (const launcher of ["Lancer MIAO.bat", "miao-launch-stream.ps1"]) {
+  assert.ok(releaseScript.includes(`"${launcher}"`), `${launcher} doit être inclus dans l’archive`);
+}
 
 const powerShellFiles = walk(".").filter((file) => /\.(?:ps1|psm1)$/.test(file));
 for (const file of powerShellFiles) {
