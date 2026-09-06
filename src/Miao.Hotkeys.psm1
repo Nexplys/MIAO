@@ -1,6 +1,6 @@
 Set-StrictMode -Version 2.0
 
-Import-Module (Join-Path $PSScriptRoot "Miao.Files.psm1") -Force
+Import-Module (Join-Path $PSScriptRoot "Miao.Files.psm1") -ErrorAction Stop
 
 function Import-MiaoPlayerActions {
     [CmdletBinding()]

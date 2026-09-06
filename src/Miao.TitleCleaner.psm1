@@ -1,6 +1,6 @@
 Set-StrictMode -Version 2.0
 
-Import-Module (Join-Path $PSScriptRoot "Miao.Files.psm1") -Force
+Import-Module (Join-Path $PSScriptRoot "Miao.Files.psm1") -ErrorAction Stop
 
 $script:CleanupPatterns = @(
     '(?i)\s*(?:[-\u2013\u2014|]\s*)?(?:\(|\[|\uFF08|\u3010)\s*official\s+music\s+video(?:\s+(?:HD|4K|1080p))?\s*(?:\)|\]|\uFF09|\u3011)\s*$',

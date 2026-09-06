@@ -1,10 +1,10 @@
 Set-StrictMode -Version 2.0
 
-Import-Module (Join-Path $PSScriptRoot "Miao.Files.psm1") -Force
-Import-Module (Join-Path $PSScriptRoot "Miao.Settings.psm1") -Force
-Import-Module (Join-Path $PSScriptRoot "Miao.Mission.psm1") -Force
-Import-Module (Join-Path $PSScriptRoot "Miao.Hotkeys.psm1") -Force
-Import-Module (Join-Path $PSScriptRoot "Miao.Http.psm1") -Force
+Import-Module (Join-Path $PSScriptRoot "Miao.Files.psm1") -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot "Miao.Settings.psm1") -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot "Miao.Mission.psm1") -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot "Miao.Hotkeys.psm1") -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot "Miao.Http.psm1") -ErrorAction Stop
 
 function Get-MiaoStaticRoute {
     param([string]$Path, [string]$RootPath)

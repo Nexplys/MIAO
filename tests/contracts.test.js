@@ -202,6 +202,15 @@ for (const file of powerShellFiles) {
   assert.equal(/`[ \t]+$/m.test(bytes.toString("ascii")), false, `${file} contient un espace après une continuation`);
 }
 
+const powerShellModules = powerShellFiles.filter((file) => file.startsWith(`src${path.sep}`));
+for (const file of powerShellModules) {
+  assert.equal(
+    /^Import-Module .*\s-Force(?:\s|$)/m.test(read(file)),
+    false,
+    `${file} ne doit pas recharger de force ses modules dépendants`
+  );
+}
+
 const allSource = walk(".")
   .filter((file) => /\.(?:ps1|psm1|js|json|html|css|md|txt)$/.test(file))
   .map(read)
