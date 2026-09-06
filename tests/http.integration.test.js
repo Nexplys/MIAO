@@ -64,7 +64,7 @@ async function raw(parts) {
 }
 
 async function main() {
-  for (const relative of ["src", "public", "modules/broadcast", "VERSION"]) {
+  for (const relative of ["src", "public", "modules/broadcast", "modules/tunic", "VERSION"]) {
     fs.cpSync(path.join(root, relative), path.join(temporaryRoot, relative), { recursive: true });
   }
   for (const id of ["alpha", "broken"]) {
@@ -95,7 +95,7 @@ Export-ModuleMember -Function Initialize-${id},Update-${id},Route-${id}
   write("run.ps1", `param([int]$Port)
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'src/Miao.App.psm1')
-Start-MiaoApplication -RootPath $PSScriptRoot -Port $Port
+Start-MiaoApplication -RootPath $PSScriptRoot -Port $Port -ModuleOptions @{tunic=@{TrackerPath=(Join-Path $PSScriptRoot 'tracker.json')}}
 `);
   const reservation = net.createServer();
   reservation.listen(0, "127.0.0.1");
@@ -112,7 +112,28 @@ Start-MiaoApplication -RootPath $PSScriptRoot -Port $Port
     try { health = await request("/health"); break; } catch (_) { await delay(100); }
   }
   assert.equal(health?.status, 200, output);
-  assert.deepEqual(health.json().modules, ["alpha", "broadcast", "broken"]);
+  assert.deepEqual(health.json().modules, ["alpha", "broadcast", "broken", "tunic"]);
+  const post = (route, value) => request(route, { method: "POST", body: Buffer.from(JSON.stringify(value)).toString("base64") });
+  assert.equal((await request("/tunic")).status, 200);
+  assert.equal((await request("/control/tunic")).status, 200);
+  assert.deepEqual((await request("/modules/tunic/images/sword4.png")).body,
+    fs.readFileSync(path.join(root, "modules/tunic/public/images/sword4.png")));
+  const initialTunic = (await request("/api/tunic/state")).json();
+  assert.equal(initialTunic.visible, false);
+  assert.equal(initialTunic.status, "missing");
+  assert.equal((await post("/api/tunic/simulation", { enabled: true })).json().visible, true);
+  assert.equal((await post("/api/tunic/simulation", { enabled: false })).json().visible, false);
+  assert.equal((await post("/api/tunic/simulation", { enabled: "true" })).status, 400);
+  assert.equal((await request("/api/tunic/simulation")).status, 405);
+  const yaml = "name: PrivateSlot\ngame: TUNIC\nTUNIC:\n  sword_progression: true\n  ability_shuffling: false\n  hexagon_quest: true\n  hexagon_goal: 30\n";
+  const imported = await post("/api/tunic/profile", { yaml });
+  assert.equal(imported.status, 200);
+  assert.equal(imported.json().settings.hexagonGoal, 30);
+  assert.equal(imported.json().settings.abilityShuffling, false);
+  assert.ok(!fs.readFileSync(path.join(temporaryRoot, "var/tunic/settings.json"), "utf8").includes("PrivateSlot"));
+  const failedImport = await post("/api/tunic/profile", { yaml: yaml.replace("30", "random") });
+  assert.equal(failedImport.status, 400);
+  assert.equal((await request("/api/tunic/config")).json().settings.hexagonGoal, 30);
   const descriptors = (await request("/api/modules")).json().modules;
   assert.equal(descriptors.find((m) => m.id === "broadcast").control.legacyDefault, true);
   assert.equal(descriptors.find((m) => m.id === "alpha").control.url, "/control/alpha");
@@ -169,7 +190,7 @@ Start-MiaoApplication -RootPath $PSScriptRoot -Port $Port
   assert.equal(slowBody.destroyed, true, "Incomplete body did not expire");
   slowWriter.destroy();
   assert.equal((await request("/health")).status, 200);
-  console.log("OK - HTTP reel : clients lents, erreurs, Unicode, binaire, docks et trois modules.");
+  console.log("OK - HTTP reel : clients lents, erreurs, Unicode, binaire, docks et quatre modules dont Tunic.");
 }
 
 main().catch((error) => { console.error(error); console.error(output); process.exitCode = 1; })

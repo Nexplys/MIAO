@@ -2,7 +2,7 @@
 
 M.I.A.O. est une application locale pour OBS composée d’un noyau léger et de modules indépendants. Le module **Broadcast** fourni avec le projet affiche la radio de bord et une transmission libre, nettoie les titres produits par Moobot Assistant et pilote son Song Player par raccourcis globaux.
 
-Cette architecture prépare l’ajout de nouveaux widgets - notamment le tracker Tunic - sans mélanger leur code, leur état ou leur interface avec la radio.
+Le module **Tunic Randomizer** suit la progression depuis le fichier local du jeu, avec son propre widget et son propre dock. Voir le [guide Tunic](docs/TUNIC.md).
 
 ## Démarrage rapide
 
@@ -21,7 +21,7 @@ Chaque sous-dossier de `modules/` possède son propre manifeste, son serveur év
 | Module | État | Fonction |
 | --- | --- | --- |
 | `broadcast` | inclus | radio, transmission, apparence et commandes Moobot |
-| `tunic` | prévu | tracker de progression Archipelago pour les viewers |
+| `tunic` | inclus | tracker de progression Tunic/Archipelago et simulation |
 
 Le noyau découvre les modules actifs au démarrage. Chaque module dispose de son propre widget et de son propre dock `/control/<id>`, à ajouter séparément dans OBS. Chaque dock charge uniquement les onglets et ressources de son module ; les autres docks peuvent être ouverts ou fermés indépendamment. Le serveur et la coquille HTML restent partagés.
 
@@ -31,6 +31,8 @@ Les données modifiables sont créées dans `var/<module>/`, un dossier ignoré 
 
 - `var/broadcast/mission.txt` ;
 - `var/broadcast/settings.json`.
+
+Tunic conserve ses réglages dans `var/tunic/settings.json`. Son état de simulation reste en mémoire.
 
 Lors du premier démarrage après une ancienne version, M.I.A.O. copie automatiquement `miao-mission.txt` et `miao-settings.json` depuis la racine si leurs nouvelles destinations n’existent pas. Les originaux sont conservés pour permettre un retour en arrière.
 
@@ -72,6 +74,6 @@ MIAO/
 - URL OBS et données existantes préservées ;
 - paquets différentiels pour les mises à jour de développement.
 
-Le code propre à M.I.A.O. est distribué sous [licence MIT](LICENSE). Les ressources tierces ajoutées par de futurs modules conservent leurs propres conditions et doivent être documentées dans le module concerné.
+Le code propre à M.I.A.O. est distribué sous [licence MIT](LICENSE). Les icônes Tunic conservent leurs [notices tierces](modules/tunic/THIRD_PARTY_NOTICES.md).
 
 Lire [l’architecture](docs/ARCHITECTURE.md), le [contrat des modules](docs/MODULES.md) et le [guide de développement](docs/DEVELOPPEMENT.md) avant toute évolution structurelle.

@@ -1,0 +1,109 @@
+[
+  {
+    "id": "hexagons",
+    "label": "Hexagones",
+    "keys": [
+      "red",
+      "green",
+      "blue"
+    ],
+    "images": [
+      "red_key.png",
+      "green_key.png",
+      "blue_key.png"
+    ]
+  },
+  {
+    "id": "sword",
+    "label": "Épée",
+    "keys": [
+      "sword"
+    ],
+    "images": [
+      "sword1.png",
+      "sword2.png",
+      "sword3.png",
+      "sword4.png"
+    ]
+  },
+  {
+    "id": "laurels",
+    "label": "Lauriers",
+    "keys": [
+      "laurels"
+    ],
+    "images": [
+      "laurels.png"
+    ]
+  },
+  {
+    "id": "prayer",
+    "label": "Prière",
+    "keys": [
+      "prayer"
+    ],
+    "images": [
+      "pray.png"
+    ]
+  },
+  {
+    "id": "holyCross",
+    "label": "Sainte-Croix",
+    "keys": [
+      "holyCross"
+    ],
+    "images": [
+      "cross.png"
+    ]
+  },
+  {
+    "id": "wand",
+    "label": "Baguette",
+    "keys": [
+      "wand"
+    ],
+    "images": [
+      "magic_staff.png"
+    ]
+  },
+  {
+    "id": "orb",
+    "label": "Orbe",
+    "keys": [
+      "orb"
+    ],
+    "images": [
+      "magic_orb.png"
+    ]
+  },
+  {
+    "id": "lantern",
+    "label": "Lanterne",
+    "keys": [
+      "lantern"
+    ],
+    "images": [
+      "lantern.png"
+    ]
+  },
+  {
+    "id": "mask",
+    "label": "Masque",
+    "keys": [
+      "mask"
+    ],
+    "images": [
+      "scavengers_mask.png"
+    ]
+  },
+  {
+    "id": "houseKey",
+    "label": "Clé de maison",
+    "keys": [
+      "houseKey"
+    ],
+    "images": [
+      "oldhousekey.png"
+    ]
+  }
+]

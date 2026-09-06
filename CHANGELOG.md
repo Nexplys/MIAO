@@ -1,5 +1,21 @@
 # Journal des versions
 
+## 4.2.1 - Partie Tunic sans nom de scène
+
+- affichage d'une partie valide même lorsque le randomizer laisse `CurrentScene.SceneName` à `null` ;
+- maintien du masquage pour le tracker réinitialisé, les écrans explicitement identifiés et le jeu fermé ;
+- test de régression pour le format observé pendant une vraie partie.
+
+## 4.2.0 - Tracker Tunic Randomizer
+
+- module indépendant : widget `/tunic` et dock `/control/tunic` ;
+- grille 2 x 5, hexagones réunis, quatre niveaux d'épée et objets de progression ;
+- lecture locale de `ItemTracker.json`, maintien de l'état valide pendant les écritures et masquage hors partie ;
+- import de quatre options du YAML Archipelago, sans conserver les données personnelles ;
+- simulation temporaire, aperçu intégré, réglages d'affichage et mode Hexagon Quest ;
+- icônes TunicTracker avec notices tierces et attribution ;
+- tests du format, des sessions, des animations, de l'import et des routes HTTP.
+
 ## 4.1.0 - Docks indépendants et fiabilité
 
 - dock séparé pour chaque module via `/control/<id>`, avec chargement exclusif de ses ressources ;

@@ -1,6 +1,6 @@
 # Module Tunic : décisions et état de préparation
 
-Spécification récupérée le 6 septembre 2026 depuis **MIAO Dev**. Aucun module Tunic n'existe encore dans la base 4.0.0 auditée. Ce document distingue les choix explicites de l'utilisateur des propositions techniques qui doivent encore être vérifiées.
+Spécification récupérée le 6 septembre 2026 depuis **MIAO Dev**. Le module est désormais implémenté dans M.I.A.O. 4.2.0 ; voir le [guide actuel](TUNIC.md). Les sections ci-dessous conservent le contexte et les propositions de la reprise initiale.
 
 ## Objectif validé
 
@@ -27,7 +27,7 @@ Références historiques à examiner au moment d'implémenter :
 - [TunicTracker de SapphireSapphic](https://github.com/SapphireSapphic/TunicTracker) pour les assets ; l'ancien chat mentionnait MIT et des crédits SapphireSapphic, ScoutJD et Br00ty.
 - [Tunic Randomizer](https://github.com/silent-destroyer/tunic-randomizer) et [ItemTracker.cs](https://github.com/silent-destroyer/tunic-randomizer/blob/main/src/Data/ItemTracker.cs) pour le format et la sémantique.
 
-Ces sources tierces n'ont pas été réauditées pendant la récupération du projet. Contrôler leur version et les droits précis des images avant de les copier ; conserver les notices pertinentes dans `modules/tunic/THIRD_PARTY_NOTICES.md`. La licence M.I.A.O. ne suffit pas à couvrir les graphismes de TUNIC.
+Ces sources ont été vérifiées pendant l'implémentation. Les icônes sont issues d'une révision épinglée de TunicTracker ; leur licence et leurs attributions sont conservées dans `modules/tunic/THIRD_PARTY_NOTICES.md`. La licence M.I.A.O. ne remplace pas les conditions applicables aux graphismes de TUNIC.
 
 ## Source locale confirmée
 

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "tunic",
+  "name": "Tunic Randomizer",
+  "version": "1.0.1",
+  "enabled": true,
+  "entry": "server/Miao.Tunic.psm1",
+  "hooks": {
+    "initialize": "Initialize-MiaoTunicModule",
+    "update": "Update-MiaoTunicModule",
+    "route": "Invoke-MiaoTunicRoute"
+  },
+  "updateIntervalMs": 500,
+  "public": {
+    "root": "public",
+    "aliases": [
+      {
+        "route": "/tunic",
+        "file": "widget.html"
+      }
+    ]
+  },
+  "control": {
+    "styles": [
+      "/modules/tunic/css/control.css"
+    ],
+    "scripts": [
+      "/modules/tunic/js/control.js"
+    ],
+    "tabs": [
+      {
+        "id": "tracker",
+        "label": "Tracker",
+        "fragment": "/modules/tunic/control/tracker.html"
+      }
+    ]
+  }
+}

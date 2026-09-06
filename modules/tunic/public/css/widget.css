@@ -1,0 +1,21 @@
+:root { color-scheme: dark; --icon: 48px; --gap: 8px; --missing: .2; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: transparent; overflow: hidden; }
+body { color: #fff5de; font: 11px "Segoe UI", sans-serif; }
+[hidden] { display: none !important; }
+#tunic-tracker { width: max-content; padding: 8px; position: relative; }
+#tunic-grid { display: grid; grid-template-columns: repeat(5, calc(var(--icon) * 1.5)); gap: var(--gap); }
+.tunic-cell { position: relative; display: flex; align-items: center; flex-direction: column; justify-content: center; min-width: 0; border-radius: 9px; }
+.tunic-art { height: var(--icon); width: 100%; display: flex; align-items: center; justify-content: center; position: relative; }
+.tunic-art img { width: var(--icon); height: var(--icon); object-fit: contain; filter: drop-shadow(0 1px 3px #251335); }
+.tunic-art .tunic-missing { opacity: var(--missing); filter: grayscale(1) drop-shadow(0 1px 2px #000); }
+.tunic-hexagons img { width: 42%; height: 90%; margin: 0 -5%; }
+.tunic-hexagons img:nth-child(2) { transform: translateY(-3px); }
+.tunic-label { display: none; max-width: 100%; text-align: center; font-size: 10px; line-height: 16px; white-space: nowrap; text-shadow: 0 1px 3px #000, 0 0 5px #000; }
+.tunic-labels .tunic-label { display: block; }
+.tunic-panels .tunic-cell { background: linear-gradient(140deg, #201b394d, #100c234d); box-shadow: inset 0 0 0 1px #e0c8ff1a; }
+.tunic-level { position: absolute; bottom: 0; right: 2px; padding: 1px 4px; border-radius: 4px; background: #151022b8; color: #fff2d4; font-size: 10px; line-height: 12px; font-variant-numeric: tabular-nums; }
+#tunic-simulation { position: absolute; z-index: 2; top: 0; left: 8px; color: #ffd978; background: #20152ded; border-radius: 3px; font-size: 8px; padding: 1px 4px; letter-spacing: .12em; }
+.tunic-acquired { animation: tunic-arrival 850ms ease-out; }
+@keyframes tunic-arrival { 0% { filter: brightness(2) drop-shadow(0 0 9px #fff1a6); } 50% { filter: brightness(1.4) drop-shadow(0 0 7px #ceafff); } 100% { filter: drop-shadow(0 1px 3px #251335); } }
+@media (prefers-reduced-motion: reduce) { .tunic-acquired { animation: none; } }

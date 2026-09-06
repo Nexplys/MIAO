@@ -1,0 +1,28 @@
+<div class="tunic-content">
+  <section class="tunic-source" aria-label="État du tracker">
+    <div class="tunic-heading"><span class="tunic-dot"></span><strong id="tunic-status">Connexion au tracker…</strong><span id="tunic-mode">EN DIRECT</span></div>
+    <p id="tunic-source-detail">Détection du fichier du randomizer.</p>
+  </section>
+  <div class="tunic-preview"><iframe id="tunic-preview" src="/tunic" title="Aperçu du tracker Tunic"></iframe></div>
+  <div class="tunic-links"><a href="/tunic" target="_blank" rel="noopener">Ouvrir le widget</a><span>Grille 2 × 5</span></div>
+  <section class="tunic-section">
+    <h2>Préparer la scène</h2>
+    <label class="tunic-switch"><input id="tunic-simulate" type="checkbox"> Simuler une progression</label>
+    <p class="tunic-help">La simulation s'affiche aussi dans OBS. Désactive-la pour retrouver ta partie. Elle s'arrête au redémarrage de M.I.A.O.</p>
+    <fieldset id="tunic-simulation-controls" disabled>
+      <div class="tunic-actions"><button id="tunic-demo-start" type="button">Début</button><button id="tunic-demo-progress" type="button">En cours</button><button id="tunic-demo-complete" type="button">Complet</button></div>
+      <div id="tunic-simulation-items" class="tunic-sim-grid"></div>
+    </fieldset>
+  </section>
+  <section class="tunic-section">
+    <h2>Configurer le tracker</h2>
+    <div id="tunic-settings"></div>
+    <button id="tunic-save" type="button">Enregistrer les réglages</button>
+  </section>
+  <section class="tunic-section">
+    <h2>Importer les options Archipelago</h2>
+    <label class="tunic-file" for="tunic-yaml">Fichier YAML TUNIC<input id="tunic-yaml" type="file" accept=".yaml,.yml"></label>
+    <p class="tunic-help">Seules quatre options de jeu sont conservées. Le YAML et les informations de connexion ne sont pas enregistrés. Les choix pondérés doivent être remplacés par leurs valeurs finales.</p>
+    <p id="tunic-import-result" role="status"></p>
+  </section>
+</div>

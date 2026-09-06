@@ -4,6 +4,8 @@
 
 ## Mise à jour locale : 4.1.0
 
+Publication confirmée après cette livraison : l'utilisateur a poussé le commit `0a71bafb13f957e2611c9393f3fada219716d7b1` (Independent modules & docks setup) sur `main`. Le workflow [Tests 34032276639](https://github.com/Nexplys/MIAO/actions/runs/34032276639) est terminé avec succès. Cette publication devient la référence distante pour la prochaine étape. La copie de développement de cette tâche n'a pas encore été réalignée sur ce commit ; vérifier son diff avant toute synchronisation.
+
 Une copie de développement a été extraite dans le dossier de cette tâche depuis le commit audité, sur la branche `codex/reliability-and-module-docks`. L'installation du Bureau reste inchangée. Aucun commit ni push n'a été créé. La nouvelle version locale apporte des docks séparés `/control/<id>`, le dock Broadcast historique compatible, un transport TCP asynchrone borné, un remplacement atomique corrigé pour PowerShell 5.1 et des tests d'intégration. Lire le CHANGELOG et les guides actualisés ; les sections suivantes décrivent l'état de référence 4.0.0 avant ces corrections.
 
 Décision utilisateur complémentaire : chaque module possède son propre dock et son widget, utilisables séparément dans OBS. La coquille HTML et le serveur sont partagés, mais aucun dock ne charge les ressources d'un autre module. L'ancienne proposition de pupitre regroupant tous les modules est remplacée.
@@ -106,9 +108,9 @@ Moobot gère les song requests et la lecture YouTube. L'utilisateur a confirmé 
 
 Commandes retenues : `!miaoplay`, `!next`, `!skip`, `!queue`, `!askmiao`. `!miao` sert à rappeler les commandes disponibles. `!askmiao` provient de la personnalisation Moobot 8ball, pas d'un modèle d'IA intégré à l'application. Les anciens alias `!sr` et `!miao` comme question sont historiques.
 
-## Prochain chantier : Tunic
+## Mise à jour : Tunic 4.2.0
 
-Voir [TUNIC-SPEC.md](TUNIC-SPEC.md) pour le cahier des charges récupéré, le format réel du tracker et les vérifications restantes. La dernière instruction de l'ancien chat était de commencer ce module. La présente reprise documente ce chantier ; elle ne prétend pas l'avoir implémenté.
+Le développement du module Tunic a été réalisé sur `codex/tunic-tracker`, depuis la version 4.1.0 publiée (`0a71bafb13f957e2611c9393f3fada219716d7b1`). Voir [TUNIC.md](TUNIC.md) pour le fonctionnement livré et [TUNIC-SPEC.md](TUNIC-SPEC.md) pour le cahier des charges historique. Le YAML utilisateur et le fichier réel réinitialisé sont reconnus. Les tests automatisés et la simulation dans le navigateur sont validés ; une acquisition en vraie partie et le placement dans OBS restent à vérifier. La copie de stream du Bureau n'a pas été modifiée.
 
 ## Suite envisagée après Tunic
 
