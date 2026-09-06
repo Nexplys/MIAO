@@ -9,8 +9,8 @@ cache/
 *.bak
 
 # Configuration propre a une machine
-config/local.json
-config/*.local.json
+modules/*/config/local.json
+modules/*/config/*.local.json
 *.local.json
 
 # Fichiers fournis par Moobot ou issus d'une ancienne installation

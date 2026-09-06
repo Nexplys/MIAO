@@ -1,91 +1,97 @@
 # Architecture de M.I.A.O.
 
-## Objectifs
+## Intention
 
-L’architecture privilégie la maintenabilité sans ajouter de runtime ou d’installation technique au poste de stream.
-
-- Le fichier `miao-clean-title.ps1` est un point d’entrée stable et minimal.
-- Les responsabilités PowerShell sont séparées par module.
-- Le HTML, le CSS et le JavaScript ne sont plus mélangés.
-- Les réglages n’ont qu’une source de vérité : `config/settings.schema.json`.
-- Les données propres à l’utilisateur ne sont pas distribuées dans l’archive.
-
-## Flux principal
+M.I.A.O. 4 sépare l’infrastructure commune des fonctionnalités de stream. Le noyau démarre le serveur, charge les modules et distribue les requêtes ; il ne connaît ni Moobot, ni une mission, ni Tunic. Chaque fonctionnalité peut ainsi évoluer ou être testée sans modifier les autres.
 
 ```mermaid
 flowchart TD
-    A[Moobot Assistant] -->|titre brut| B[TitleCleaner]
-    B --> C[État local M.I.A.O.]
-    D[Dock OBS] -->|API locale| E[Serveur PowerShell]
-    E --> C
-    E --> F[Réglages et transmission]
-    C --> E
-    F --> E
-    E -->|API locale| G[Widget OBS]
-    D -->|raccourcis validés| H[Moobot Assistant]
+    L[Lanceur] --> C[Noyau M.I.A.O.]
+    C --> R[Routeur local]
+    C --> M[Chargeur de modules]
+    M --> B[Module Broadcast]
+    R --> D[Dock commun OBS]
+    R --> W[Widgets des modules]
 ```
 
-## Modules PowerShell
+## Responsabilités
 
-| Module | Responsabilité |
-| --- | --- |
-| `Miao.App.psm1` | Initialisation, contexte et cycle de vie applicatif |
-| `Miao.Routes.psm1` | Routage, API locale et contrôle de l’origine des mutations |
-| `Miao.Http.psm1` | Lecture des requêtes et réponses HTTP |
-| `Miao.Files.psm1` | Lecture UTF-8 et écritures atomiques |
-| `Miao.Settings.psm1` | Schéma, migration, validation et persistance |
-| `Miao.Mission.psm1` | Initialisation, normalisation et sauvegarde de la transmission |
-| `Miao.Moobot.psm1` | Détection générique de la source Song Player |
-| `Miao.TitleCleaner.psm1` | Nettoyage en mémoire et surveillance du titre Moobot |
-| `Miao.Hotkeys.psm1` | Liste blanche et émission des raccourcis Song Player |
-
-## Configuration pilotée par schéma
-
-Chaque champ de `config/settings.schema.json` contient :
-
-- sa clé stable ;
-- son type ;
-- sa valeur par défaut ;
-- ses limites éventuelles ;
-- son groupe et son libellé pour le dock.
-
-Le serveur utilise ce schéma pour valider et migrer les données. Le dock l’utilise pour construire automatiquement ses champs. Ajouter un réglage ne doit donc jamais nécessiter de recopier sa valeur par défaut dans le JavaScript. Les contraintes entre champs, comme le seuil « très compact » qui ne peut pas précéder le seuil « compact », sont elles aussi déclarées dans le schéma.
-
-## API locale
-
-| Méthode | Route | Usage |
+| Couche | Emplacement | Responsabilité |
 | --- | --- | --- |
-| `GET` | `/api/state` | État complet destiné au widget et au chargement du dock |
-| `GET` | `/api/song` | Titre courant léger pour le dock |
-| `GET` | `/api/schema` | Schéma des réglages |
-| `GET` | `/api/player/actions` | Actions Moobot autorisées |
-| `POST` | `/api/mission` | Sauvegarde de la transmission |
-| `POST` | `/api/settings` | Validation et sauvegarde des réglages |
-| `POST` | `/api/settings/reset` | Restauration des valeurs par défaut |
-| `POST` | `/api/player` | Déclenchement d’une action Moobot en liste blanche |
+| Point d’entrée | `scripts/start-miao.ps1` | paramètres, options destinées aux modules, lancement |
+| Application | `src/Miao.App.psm1` | contexte, écoute locale et cycle de vie |
+| Modules | `src/Miao.Modules.psm1` | découverte, validation, chargement, mise à jour et arrêt |
+| Routage | `src/Miao.Routes.psm1` | routes centrales, ressources modulaires et délégation API |
+| HTTP | `src/Miao.Http.psm1` | requêtes, JSON, texte et fichiers binaires |
+| Sécurité web | `src/Miao.Web.psm1` | méthodes autorisées, erreurs API et contrôle d’origine |
+| Persistance | `src/Miao.Files.psm1` | lecture UTF-8 et écritures atomiques |
+| Réglages | `src/Miao.Settings.psm1` | validation générique par schéma et migration |
+| Fonctionnalités | `modules/<id>/` | état, API, widget, dock et configuration d’un domaine |
+| Données locales | `var/<id>/` | état utilisateur persistant d’un module, ignoré par Git |
 
-Les corps `POST` sont encodés en Base64 UTF-8. Ce choix évite toute ambiguïté entre longueur en caractères et longueur en octets dans le petit serveur HTTP compatible Windows PowerShell 5.1.
+## Démarrage
 
-Le serveur refuse aussi toute mutation portant une origine web différente de ses adresses locales. Les requêtes sans en-tête `Origin`, par exemple un diagnostic local en ligne de commande, restent autorisées.
+1. Le lanceur transmet au noyau les options propres aux modules.
+2. Le chargeur lit tous les `modules/*/module.json` dans l’ordre de leur identifiant.
+3. Tous les manifestes actifs sont validés avant l’initialisation du premier module.
+4. Chaque point d’entrée PowerShell est importé et son hook `initialize` produit un état privé.
+5. Le serveur commence à écouter sur `127.0.0.1`.
+6. La boucle appelle les hooks `update` selon l’intervalle déclaré et délègue les routes API.
+7. À l’arrêt, les hooks `shutdown` sont appelés même si un autre module échoue.
 
-Le serveur traite volontairement les quelques requêtes locales l’une après l’autre. Cela garde le runtime autonome et prédictible ; le widget et le dock n’émettent que des requêtes très courtes.
+Une erreur d’initialisation empêche un démarrage partiel. Les modules déjà initialisés sont arrêtés avant que l’erreur soit remontée.
 
-## Persistance
+## Routage
 
-Les fichiers suivants sont créés à l’exécution, à côté du lanceur :
+Le noyau possède uniquement les routes communes :
 
-- `miao-settings.json` ;
-- `miao-mission.txt`.
+| Route | Propriétaire |
+| --- | --- |
+| `/control`, `/miao-control.html` | coquille du dock |
+| `/assets/api.js`, `/assets/control.js`, `/assets/control.css` | ressources communes |
+| `/api/modules` | description publique des interfaces modulaires |
+| `/health` | état de l’application et liste des modules actifs |
+| `/modules/<id>/...` | fichier public confiné au module concerné |
 
-Ils sont écrits par remplacement atomique afin de limiter le risque de corruption lors d’une fermeture brutale. Une migration de schéma et un fichier de réglages illisible déclenchent d’abord une copie de secours. Ces données et leurs sauvegardes ne doivent pas être ajoutées aux paquets de mise à jour.
+Les routes `/`, `/miao-widget.html` et les anciennes ressources `/assets/widget*` sont des alias déclarés par Broadcast. Ses API historiques restent inchangées, mais leur implémentation se trouve désormais dans `modules/broadcast/server/Miao.Broadcast.psm1`.
 
-Le fichier brut du Song Player reste la propriété de Moobot Assistant. M.I.A.O. détecte automatiquement `*.song-player.current.txt` dans `%APPDATA%`, puis conserve le titre nettoyé dans son état en mémoire. Si plusieurs sources existent, la plus récemment modifiée est utilisée ; `-Channel` et `-SourcePath` permettent toujours une sélection explicite. Aucun fichier `*.cleaned.txt` n’est nécessaire ou créé.
+Le serveur sait envoyer des fichiers texte ou binaires. Un futur module peut donc servir ses images PNG sans encodage Base64 ni ajout de route au noyau.
 
-## Règles d’évolution
+## Dock composable
 
-1. Conserver les routes historiques `/`, `/control`, `/miao-widget.html` et `/miao-control.html`.
-2. Ajouter tout réglage utilisateur dans le schéma avant de l’utiliser dans le widget.
-3. Ne jamais accepter un nom de touche ou une commande arbitraire depuis le navigateur.
-4. Garder le PowerShell en caractères ASCII pour Windows PowerShell 5.1 sans BOM.
-5. Exécuter les tests de contrat avant de créer l’archive.
-6. Mettre à jour `VERSION` et `CHANGELOG.md` pour toute nouvelle version distribuée.
+`public/control.html` est une coquille vide. Au chargement, il demande `/api/modules`, récupère les feuilles de style, fragments HTML et scripts déclarés, puis crée des onglets qualifiés par l’identifiant du module.
+
+Les identifiants HTML internes doivent eux aussi être préfixés (`broadcast-…`, `tunic-…`) pour éviter toute collision dans le document assemblé. Les URL fournies au navigateur sont validées une première fois au démarrage par PowerShell et une seconde fois dans le dock.
+
+## Module Broadcast
+
+Broadcast regroupe tout l’ancien domaine fonctionnel de M.I.A.O. 3 :
+
+- détection de la source Moobot ;
+- nettoyage en mémoire du titre ;
+- transmission libre ;
+- schéma des 42 réglages ;
+- widget animé ;
+- huit commandes du Song Player.
+
+Ses fichiers runtime sont isolés dans son dossier de données :
+
+- `var/broadcast/settings.json` ;
+- `var/broadcast/mission.txt`.
+
+Au premier démarrage, Broadcast copie les anciens fichiers `miao-settings.json` et `miao-mission.txt` présents à la racine lorsque les nouvelles destinations n’existent pas. Cette migration ne supprime et n’écrase aucune donnée historique.
+
+L’absence temporaire de Moobot ne bloque plus l’application. Broadcast conserve une radio vide et retente périodiquement la détection automatique.
+
+## Sécurité et robustesse
+
+- écoute limitée à l’interface de boucle locale ;
+- refus des mutations provenant d’une autre origine web ;
+- liste blanche pour les raccourcis Moobot ;
+- validation des manifestes avant exécution ;
+- refus des traversées de dossiers et des alias réservés ;
+- types MIME explicites et en-tête `nosniff` ;
+- écritures utilisateur atomiques et sauvegardes avant migration ;
+- erreurs de mise à jour isolées par module afin de préserver la boucle principale.
+
+Le détail du format de manifeste et des hooks se trouve dans [MODULES.md](MODULES.md).

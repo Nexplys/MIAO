@@ -1,90 +1,86 @@
 # Installation et mise à jour de M.I.A.O.
 
-## Mise à jour depuis la version précédente
+## Mise à jour depuis M.I.A.O. 3
 
-1. Fermer le script PowerShell M.I.A.O.
-2. Conserver les fichiers actuels `miao-mission.txt` et `miao-settings.json`.
-3. Extraire tout le nouveau dossier `MIAO-Widget` par-dessus l’ancien.
-4. Vérifier que `Lancer MIAO.bat` et les dossiers `config`, `public` et `src` sont présents.
+Les URL OBS et les données utilisateur restent compatibles.
+
+1. Fermer M.I.A.O.
+2. Conserver `miao-mission.txt` et `miao-settings.json` à la racine pour leur import automatique.
+3. Copier les nouveaux fichiers par-dessus l’installation actuelle.
+4. Vérifier la présence de `modules/broadcast/module.json`, de `public/` et de `src/`.
 5. Relancer `Lancer MIAO.bat`.
-6. Actualiser le dock et la source navigateur dans OBS si l’ancienne interface reste en cache.
+6. Vérifier que `var/broadcast/mission.txt` et `var/broadcast/settings.json` ont été créés.
+7. Actualiser le cache du dock et de la source navigateur si nécessaire.
 
-Le paquet ne contient plus de `miao-mission.txt` ni de `miao-settings.json`. Une extraction normale ne peut donc pas remplacer tes données. Au premier lancement, les anciens réglages sont validés et migrés automatiquement vers le schéma actuel. Une copie `miao-settings.json.v2.bak` est conservée avant la migration ; un JSON illisible est lui aussi sauvegardé avec le suffixe `invalid-...bak` avant le retour aux valeurs par défaut.
+M.I.A.O. copie les deux anciens fichiers dans `var/broadcast/` uniquement si leur nouvelle destination n’existe pas. Après avoir validé le widget et le dock, les anciennes copies à la racine peuvent être archivées ou supprimées manuellement.
 
-Les anciens fichiers `miao-widget.html` et `miao-control.html` placés à la racine ne sont plus utilisés. Ils peuvent rester sur place sans gêner le fonctionnement.
+Avec Git, les renommages et suppressions sont appliqués normalement lors de la mise à jour de la branche. Avec un paquet différentiel, consulter le fichier `*-files-to-delete.txt` fourni à côté de l’archive et supprimer uniquement les chemins qu’il énumère.
+
+Les anciens fichiers de Broadcast situés dans `config/`, `public/widget.html`, `public/css/widget.css`, `public/js/widget*.js` et les modules fonctionnels correspondants dans `src/` sont ignorés par M.I.A.O. 4. Ils peuvent donc rester le temps du premier test, puis être retirés selon le manifeste de suppression.
 
 ## Nouvelle installation
 
-1. Extraire le dossier complet dans l’emplacement souhaité.
-2. Double-cliquer sur `Lancer MIAO.bat`.
-3. Laisser le script démarrer une première fois.
-4. Vérifier que la fenêtre affiche les deux adresses M.I.A.O.
+1. Extraire la distribution complète dans l’emplacement souhaité.
+2. Vérifier que le dossier `modules/broadcast` est présent.
+3. Double-cliquer sur `Lancer MIAO.bat`.
+4. Laisser la fenêtre PowerShell ouverte ou réduite pendant le stream.
 
-Exemple de fichier `.bat` :
+Le lanceur fourni exécute :
 
 ```bat
 @echo off
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0miao-clean-title.ps1"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\start-miao.ps1"
 pause
 ```
 
-Le lanceur recherche automatiquement les fichiers du Song Player dans :
+## Détection de Moobot
+
+Broadcast cherche automatiquement :
 
 ```text
 %APPDATA%\moobot-assistant\User files\*.song-player.current.txt
 ```
 
-S’il n’en trouve qu’un, il le sélectionne directement. S’il en trouve plusieurs, il utilise le plus récemment modifié et affiche le nom retenu dans la console. Ce fichier est uniquement lu. Le titre nettoyé est conservé en mémoire : M.I.A.O. ne crée plus de fichier `*.song-player.current.cleaned.txt` dans le dossier Moobot.
+S’il trouve plusieurs fichiers, il sélectionne le plus récemment modifié. Moobot peut être lancé avant ou après M.I.A.O. : tant que la source n’est pas disponible, le module réessaie périodiquement sans empêcher le dock ou les autres modules de fonctionner.
 
-Pour imposer une chaîne précise ou utiliser un autre port :
+Le fichier de Moobot est uniquement lu. Le titre nettoyé reste en mémoire et aucun `*.song-player.current.cleaned.txt` n’est créé.
 
-```bat
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0miao-clean-title.ps1" -Channel "autrechaine" -Port 8975
-```
-
-### Lancer M.I.A.O. avec OBS
-
-Le lanceur optionnel `miao-launch-stream.ps1` démarre M.I.A.O. en arrière-plan, ouvre OBS si nécessaire, puis arrête M.I.A.O. à la fermeture d’OBS :
+Pour imposer une chaîne, une source ou un autre port :
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\miao-launch-stream.ps1
+.\scripts\start-miao.ps1 -Channel "autrechaine" -Port 8975
+.\scripts\start-miao.ps1 -SourcePath "D:\Titres\radio.song-player.current.txt"
 ```
 
-Si OBS n’est pas installé dans son emplacement standard :
+## Lancement coordonné avec OBS
+
+Le lanceur optionnel démarre M.I.A.O. en arrière-plan, ouvre OBS si nécessaire, puis arrête M.I.A.O. à la fermeture d’OBS :
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\miao-launch-stream.ps1 -ObsPath "D:\OBS\bin\64bit\obs64.exe"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-with-obs.ps1
 ```
 
-## Nettoyer l’ancienne installation Moobot
+Un chemin OBS non standard peut être fourni avec `-ObsPath`.
 
-Effectuer ce nettoyage uniquement après avoir validé la version placée sur le Bureau :
+## Configuration OBS
 
-1. démarrer Moobot Assistant, M.I.A.O. et OBS depuis le nouveau dossier ;
-2. vérifier que le morceau courant apparaît dans le widget ;
-3. modifier la transmission depuis le dock et vérifier sa sauvegarde ;
-4. fermer M.I.A.O. ;
-5. dans `%APPDATA%\moobot-assistant\User files`, conserver les fichiers `*.song-player.current.txt` créés par Moobot ;
-6. placer les anciens fichiers `*.song-player.current.cleaned.txt` et les anciennes copies identifiées de M.I.A.O. dans la Corbeille.
-
-Ne pas supprimer les autres fichiers appartenant à Moobot Assistant. Le commit d’import Git conserve déjà l’ancienne version du code ; la Corbeille offre une sécurité supplémentaire pendant les premiers streams.
-
-## OBS
-
-### Source navigateur
+### Widget Broadcast
 
 - URL : `http://127.0.0.1:8974/`
+- alias équivalent : `http://127.0.0.1:8974/miao-widget.html`
 - largeur conseillée : `800`
 - hauteur conseillée : `360`
 - images par seconde : `30`
 - **Fichier local** : désactivé
 
-### Dock navigateur
+### Dock commun
 
 Dans **Affichage → Docks → Docks de navigateur personnalisés** :
 
 - nom : `MIAO - Console de bord`
 - URL : `http://127.0.0.1:8974/control`
+
+Les onglets sont ajoutés automatiquement par les modules actifs.
 
 ## Raccourcis Moobot Assistant
 
@@ -105,8 +101,8 @@ Moobot Assistant doit rester ouvert. Si les boutons ne répondent pas, vérifier
 
 ## Diagnostic
 
-- widget : `http://127.0.0.1:8974/`
+- Broadcast : `http://127.0.0.1:8974/`
 - console : `http://127.0.0.1:8974/control`
 - état de santé : `http://127.0.0.1:8974/health`
 
-Le serveur écoute uniquement sur `127.0.0.1` : il n’est pas exposé au réseau local ni à Internet.
+`/health` indique la version de M.I.A.O. et les modules actifs. Le serveur reste limité à `127.0.0.1` : il n’est exposé ni au réseau local ni à Internet.

@@ -1,0 +1,50 @@
+[data-module="broadcast"] .now-playing {
+  min-height: 68px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border-left: 3px solid var(--yellow);
+  border-radius: 7px;
+  background: var(--panel-deep);
+}
+
+[data-module="broadcast"] .now-playing small {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+[data-module="broadcast"] .now-playing strong {
+  display: block;
+  color: var(--yellow);
+  font-family: Consolas, "Lucida Console", monospace;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+[data-module="broadcast"] .shortcut-list {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 5px 12px;
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.17);
+  color: var(--muted);
+  font-size: 10px;
+}
+
+[data-module="broadcast"] .shortcut-list code { color: var(--purple); }
+
+[data-module="broadcast"] .player-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 380px) {
+  [data-module="broadcast"] .player-grid { grid-template-columns: 1fr; }
+}

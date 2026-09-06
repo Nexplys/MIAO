@@ -8,7 +8,7 @@ param(
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = "Stop"
 
-$cleanerPath = Join-Path $PSScriptRoot "miao-clean-title.ps1"
+$miaoPath = Join-Path $PSScriptRoot "start-miao.ps1"
 if ([string]::IsNullOrWhiteSpace($ObsPath)) {
     if ([string]::IsNullOrWhiteSpace($env:ProgramFiles)) {
         throw "La variable ProgramFiles est introuvable."
@@ -18,10 +18,10 @@ if ([string]::IsNullOrWhiteSpace($ObsPath)) {
 }
 $ObsPath = [System.IO.Path]::GetFullPath($ObsPath)
 
-if (-not (Test-Path $cleanerPath)) {
+if (-not (Test-Path $miaoPath)) {
     Add-Type -AssemblyName PresentationFramework
     [System.Windows.MessageBox]::Show(
-        "Le fichier miao-clean-title.ps1 est introuvable.",
+        "Le fichier scripts\start-miao.ps1 est introuvable.",
         "M.I.A.O."
     )
     exit
@@ -36,8 +36,8 @@ if (-not (Test-Path $ObsPath)) {
     exit
 }
 
-$cleaner = Start-Process powershell.exe `
-    -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$cleanerPath`"" `
+$miao = Start-Process powershell.exe `
+    -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$miaoPath`"" `
     -WindowStyle Hidden `
     -PassThru
 
@@ -54,7 +54,7 @@ try {
     $obs.WaitForExit()
 }
 finally {
-    if ($cleaner -and -not $cleaner.HasExited) {
-        Stop-Process -Id $cleaner.Id -Force
+    if ($miao -and -not $miao.HasExited) {
+        Stop-Process -Id $miao.Id -Force
     }
 }

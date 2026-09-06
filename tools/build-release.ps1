@@ -23,15 +23,14 @@ $packageRoot = Join-Path $temporaryRoot "MIAO-Widget"
 $releaseEntries = @(
     ".gitignore",
     "CHANGELOG.md",
-    "INSTALLATION-MIAO.md",
     "Lancer MIAO.bat",
+    "LICENSE",
     "README.md",
     "VERSION",
-    "miao-clean-title.ps1",
-    "miao-launch-stream.ps1",
-    "config",
     "docs",
+    "modules",
     "public",
+    "scripts",
     "src",
     "tests",
     "tools"

@@ -57,13 +57,15 @@ h1 {
 }
 
 .tabs {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  overflow-x: auto;
   padding: 0 8px;
   border-bottom: 1px solid var(--border);
 }
 
 .tab {
+  flex: 1 0 auto;
+  min-width: 96px;
   min-height: 39px;
   border: 0;
   border-bottom: 2px solid transparent;
@@ -283,8 +285,7 @@ input[type="color"] {
 
 .stats.warning { color: var(--yellow); }
 
-.actions,
-.player-grid {
+.actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
@@ -327,47 +328,6 @@ button.danger {
 
 button.wide { grid-column: 1 / -1; }
 
-.now-playing {
-  min-height: 68px;
-  margin-bottom: 12px;
-  padding: 12px;
-  border-left: 3px solid var(--yellow);
-  border-radius: 7px;
-  background: var(--panel-deep);
-}
-
-.now-playing small {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.now-playing strong {
-  display: block;
-  color: var(--yellow);
-  font-family: Consolas, "Lucida Console", monospace;
-  line-height: 1.4;
-  overflow-wrap: anywhere;
-}
-
-.shortcut-list {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 5px 12px;
-  margin-top: 12px;
-  padding: 10px;
-  border-radius: 7px;
-  background: rgba(0, 0, 0, 0.17);
-  color: var(--muted);
-  font-size: 10px;
-}
-
-.shortcut-list code { color: var(--purple); }
-
 .status {
   position: sticky;
   bottom: 0;
@@ -386,8 +346,7 @@ button.wide { grid-column: 1 / -1; }
 
 @media (max-width: 380px) {
   .grid,
-  .actions,
-  .player-grid { grid-template-columns: 1fr; }
+  .actions { grid-template-columns: 1fr; }
 
   .field.full,
   button.wide { grid-column: auto; }

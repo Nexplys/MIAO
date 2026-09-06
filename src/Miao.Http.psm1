@@ -103,6 +103,34 @@ function Receive-MiaoHttpRequest {
     }
 }
 
+function Send-MiaoBytesResponse {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)][System.Net.Sockets.TcpClient]$Client,
+        [Parameter(Mandatory = $true)][int]$StatusCode,
+        [Parameter(Mandatory = $true)][string]$StatusText,
+        [Parameter(Mandatory = $true)][string]$ContentType,
+        [AllowEmptyCollection()][byte[]]$BodyBytes = @()
+    )
+
+    $stream = $Client.GetStream()
+    $header = "HTTP/1.1 $StatusCode $StatusText`r`n" +
+              "Content-Type: $ContentType`r`n" +
+              "Content-Length: $($BodyBytes.Length)`r`n" +
+              "Cache-Control: no-store, no-cache, must-revalidate, max-age=0`r`n" +
+              "Pragma: no-cache`r`n" +
+              "X-Content-Type-Options: nosniff`r`n" +
+              "Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; img-src 'self' data:`r`n" +
+              "Connection: close`r`n`r`n"
+    $headerBytes = [System.Text.Encoding]::ASCII.GetBytes($header)
+
+    $stream.Write($headerBytes, 0, $headerBytes.Length)
+    if ($BodyBytes.Length -gt 0) {
+        $stream.Write($BodyBytes, 0, $BodyBytes.Length)
+    }
+    $stream.Flush()
+}
+
 function Send-MiaoHttpResponse {
     [CmdletBinding()]
     param(
@@ -113,23 +141,29 @@ function Send-MiaoHttpResponse {
         [AllowEmptyString()][string]$Body = ""
     )
 
-    $stream = $Client.GetStream()
-    $bodyBytes = $script:Utf8NoBom.GetBytes($Body)
-    $header = "HTTP/1.1 $StatusCode $StatusText`r`n" +
-              "Content-Type: $ContentType`r`n" +
-              "Content-Length: $($bodyBytes.Length)`r`n" +
-              "Cache-Control: no-store, no-cache, must-revalidate, max-age=0`r`n" +
-              "Pragma: no-cache`r`n" +
-              "X-Content-Type-Options: nosniff`r`n" +
-              "Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; img-src 'self' data:`r`n" +
-              "Connection: close`r`n`r`n"
-    $headerBytes = [System.Text.Encoding]::ASCII.GetBytes($header)
+    Send-MiaoBytesResponse `
+        -Client $Client `
+        -StatusCode $StatusCode `
+        -StatusText $StatusText `
+        -ContentType $ContentType `
+        -BodyBytes ($script:Utf8NoBom.GetBytes($Body))
+}
 
-    $stream.Write($headerBytes, 0, $headerBytes.Length)
-    if ($bodyBytes.Length -gt 0) {
-        $stream.Write($bodyBytes, 0, $bodyBytes.Length)
-    }
-    $stream.Flush()
+function Send-MiaoFileResponse {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)][System.Net.Sockets.TcpClient]$Client,
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$ContentType
+    )
+
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    Send-MiaoBytesResponse `
+        -Client $Client `
+        -StatusCode 200 `
+        -StatusText "OK" `
+        -ContentType $ContentType `
+        -BodyBytes $bytes
 }
 
 function Send-MiaoJsonResponse {
@@ -164,6 +198,8 @@ function ConvertFrom-MiaoEncodedJson {
 
 Export-ModuleMember -Function `
     Receive-MiaoHttpRequest, `
+    Send-MiaoBytesResponse, `
     Send-MiaoHttpResponse, `
+    Send-MiaoFileResponse, `
     Send-MiaoJsonResponse, `
     ConvertFrom-MiaoEncodedJson

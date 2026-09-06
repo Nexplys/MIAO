@@ -1,6 +1,7 @@
 Set-StrictMode -Version 2.0
 
-Import-Module (Join-Path $PSScriptRoot "Miao.Files.psm1") -ErrorAction Stop
+$corePath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\..\..\src"))
+Import-Module (Join-Path $corePath "Miao.Files.psm1") -ErrorAction Stop
 
 function Initialize-MiaoMission {
     [CmdletBinding()]

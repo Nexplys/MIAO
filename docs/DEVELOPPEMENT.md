@@ -2,14 +2,15 @@
 
 ## Prérequis
 
-- Windows PowerShell 5.1 pour les tests des modules et le test réel avec Moobot ;
-- Node.js récent uniquement pour les tests de contrat JavaScript.
+- Windows PowerShell 5.1 pour le serveur et les tests PowerShell ;
+- Node.js récent uniquement pour les contrats JavaScript et structurels ;
+- Git pour construire une mise à jour différentielle.
 
-Node.js n’est pas nécessaire pour utiliser M.I.A.O. en stream.
+Node.js et Git ne sont pas nécessaires sur le poste qui utilise simplement M.I.A.O. en stream.
 
 ## Lancer les tests
 
-Depuis la racine du projet :
+Depuis la racine :
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\run-all.ps1
@@ -22,40 +23,74 @@ node .\tests\contracts.test.js
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Miao.Tests.ps1
 ```
 
-La même commande est exécutée automatiquement par GitHub Actions à chaque push et pour chaque pull request vers `main`.
+GitHub Actions exécute la suite complète sous Windows à chaque push et pour chaque pull request vers `main`.
 
-## Ajouter ou modifier un réglage
+Les contrats vérifient notamment les manifestes, l’isolation des chemins publics, les alias, les fragments du dock, les 42 réglages Broadcast, les huit actions Moobot, la syntaxe JavaScript, l’ASCII PowerShell, l’arborescence racine figée et l’absence de chemin utilisateur figé.
 
-1. Modifier `config/settings.schema.json`.
-2. Consommer la nouvelle clé dans `public/js/widget.js` ou `public/js/widget-core.js`.
+## Ajouter un module
+
+Lire [MODULES.md](MODULES.md), puis créer `modules/<id>/module.json` et seulement les sous-dossiers nécessaires. Le noyau ne doit recevoir aucune condition portant sur l’identifiant du nouveau module.
+
+Si le nouveau module a besoin d’un type MIME statique qui n’existe pas encore, l’ajouter une seule fois dans `Get-MiaoContentType`. Toute sa logique fonctionnelle, ses API et son interface restent dans son dossier. Ses données locales sont stockées sous `$ApplicationContext.RuntimePath/<id>/`.
+
+## Modifier Broadcast
+
+### Réglage d’affichage
+
+1. Modifier `modules/broadcast/config/settings.schema.json`.
+2. Consommer la clé dans `modules/broadcast/public/js/widget.js` ou `widget-core.js`.
 3. Lancer les tests.
 
-Le dock génère le champ correspondant. Le module de réglages génère sa valeur par défaut, le valide et migre les anciens fichiers. Aucune autre copie de la valeur par défaut ne doit être ajoutée.
+Le dock génère les champs à partir du schéma. Ne recopier aucune valeur par défaut dans son contrôleur.
 
-## Modifier une commande Moobot
+### Commande Moobot
 
-Modifier uniquement `config/player-actions.json`, puis lancer les tests. Le serveur n’accepte que les identifiants présents dans ce fichier et uniquement une touche numérique avec le préfixe `Ctrl+Alt+Shift`.
+Modifier uniquement `modules/broadcast/config/player-actions.json`. Le serveur n’accepte que les identifiants présents dans ce fichier et une touche numérique avec le préfixe `Ctrl+Alt+Shift`.
 
-## Modifier le widget
+### Widget
 
-- placer les calculs sans accès au DOM dans `public/js/widget-core.js` afin de pouvoir les tester ;
-- garder l’animation et les interactions avec le DOM dans `public/js/widget.js` ;
-- ne pas ajouter de script ou de style inline dans le HTML.
+- placer les calculs purs dans `widget-core.js` ;
+- garder le DOM et l’animation dans `widget.js` ;
+- ne pas ajouter de script ou de style inline ;
+- conserver `/` comme alias du widget Broadcast tant qu’OBS l’utilise.
 
-## Créer l’archive
+## Construire une distribution complète
 
-Après les tests :
+Pour une nouvelle installation :
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\build-release.ps1
 ```
 
-Le script relance toutes les suites puis construit `MIAO-Widget-OBS.zip` à côté du dossier du projet depuis une liste explicite de fichiers. Les données runtime `miao-mission.txt` et `miao-settings.json` ne peuvent pas entrer dans l’archive.
+Le script relance les tests puis construit `MIAO-Widget-OBS.zip` depuis une liste explicite. Les fichiers runtime ne peuvent pas entrer dans l’archive.
+
+## Construire une mise à jour différentielle
+
+Pour transmettre seulement les fichiers ajoutés ou modifiés depuis le dernier commit :
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\build-update.ps1
+```
+
+Pour comparer avec une autre base :
+
+```powershell
+.\tools\build-update.ps1 -BaseRef origin/main -DestinationPath .\MIAO-Update.zip
+```
+
+L’archive reproduit directement l’arborescence du dépôt, sans dossier complet superflu. Les suppressions et les anciennes sources des renommages sont inscrites dans un fichier voisin `MIAO-Update-files-to-delete.txt` : elles ne sont jamais exécutées automatiquement.
 
 ## Vérifications manuelles Windows
 
-1. Démarrer M.I.A.O. avec le lanceur habituel.
-2. Ouvrir `/health`, `/` et `/control`.
-3. Modifier une transmission et plusieurs réglages rapidement.
-4. Tester les huit commandes avec Moobot Assistant ouvert.
-5. Vérifier les modes radio seule, mission seule, alternance et écran vide.
+1. Démarrer M.I.A.O. sans Moobot et vérifier que `/health` et `/control` répondent.
+2. Ouvrir Moobot et vérifier que le morceau apparaît sans relancer M.I.A.O.
+3. Vérifier `/`, `/miao-widget.html` et le dock existant dans OBS.
+4. Modifier rapidement plusieurs réglages et une transmission.
+5. Tester les huit commandes avec Moobot Assistant ouvert.
+6. Vérifier les modes radio seule, mission seule, alternance et écran vide.
+
+## Arborescence stable
+
+La topologie du projet est figée à partir de M.I.A.O. 4.0. Les nouvelles fonctionnalités ajoutent un dossier `modules/<id>/` et, à l’exécution, éventuellement `var/<id>/`. Elles ne déplacent pas les lanceurs, le noyau, le dock commun, la documentation ou les outils existants.
+
+Les seuls fichiers de projet conservés à la racine sont `.gitignore`, `CHANGELOG.md`, `LICENSE`, `Lancer MIAO.bat`, `README.md` et `VERSION`. Le test de contrat bloque l’ajout accidentel d’un autre fichier de code ou de documentation à cet emplacement.

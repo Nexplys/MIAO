@@ -1,454 +1,167 @@
 "use strict";
 
-(function startMiaoControl() {
-  const messageInput = document.getElementById("message");
-  const statsElement = document.getElementById("stats");
+(function startMiaoControlHost() {
+  const tabsElement = document.getElementById("module-tabs");
+  const panelsElement = document.getElementById("module-panels");
   const statusElement = document.getElementById("status");
-  const currentSongElement = document.getElementById("current-song");
-  const transmissionSettings = document.getElementById("transmission-settings");
-  const displaySettings = document.getElementById("display-settings");
-  const playerActions = document.getElementById("player-actions");
-  const shortcutList = document.getElementById("shortcut-list");
-
-  let schema = null;
-  let settings = {};
-  let messageTimer = null;
-  let settingsTimer = null;
-  let messageQueue = Promise.resolve();
-  let settingsQueue = Promise.resolve();
-  let lastSavedMessage = "";
-  let messageEditRevision = 0;
-  let settingsEditRevision = 0;
-  let applicationReady = false;
-
-  function normalizeLineEndings(value) {
-    return String(value || "").replace(/\r\n?/g, "\n");
-  }
-
-  function normalizeMission(value) {
-    return normalizeLineEndings(value).replace(/\0/g, "").trim();
-  }
+  const loadedStyles = new Map();
+  const loadedScripts = new Map();
+  const moduleInitializers = new Map();
 
   function setStatus(message, type = "") {
     statusElement.textContent = message;
     statusElement.className = `status ${type}`.trim();
   }
 
-  function createElement(tagName, options = {}) {
-    const element = document.createElement(tagName);
-    if (options.className) element.className = options.className;
-    if (options.text !== undefined) element.textContent = options.text;
-    return element;
-  }
-
-  function getAllFields() {
-    if (!schema) return [];
-    return schema.groups.flatMap((group) => group.fields);
-  }
-
-  function getDefaultSettings() {
-    const defaults = { version: schema.version };
-    for (const field of getAllFields()) {
-      defaults[field.key] = field.default;
+  function assertModuleUrl(moduleId, url) {
+    const value = String(url || "");
+    const prefix = `/modules/${moduleId}/`;
+    let decoded = "";
+    try {
+      decoded = decodeURIComponent(value.slice(prefix.length));
+    } catch (_) {
+      throw new Error(`Ressource invalide déclarée par le module ${moduleId}.`);
     }
-    return defaults;
-  }
-
-  function createSwitchField(field) {
-    const row = createElement("div", { className: "switch-row" });
-    const copy = createElement("div", { className: "switch-copy" });
-    copy.appendChild(createElement("strong", { text: field.label }));
-    if (field.description) {
-      copy.appendChild(createElement("small", { text: field.description }));
+    const segments = decoded.split("/");
+    if (!value.startsWith(prefix) || /[?#\\]/.test(value) || /[?#\\]/.test(decoded) ||
+        segments.some((segment) => !segment || segment === "." || segment === "..")) {
+      throw new Error(`Ressource invalide déclarée par le module ${moduleId}.`);
     }
-
-    const label = createElement("label", { className: "switch" });
-    label.setAttribute("aria-label", field.label);
-    const input = document.createElement("input");
-    input.type = "checkbox";
-    input.dataset.setting = field.key;
-    label.append(input, createElement("span", { className: "slider" }));
-    row.append(copy, label);
-    return row;
+    return value;
   }
 
-  function configureInput(input, field) {
-    input.dataset.setting = field.key;
-    if (field.minimum !== undefined) input.min = field.minimum;
-    if (field.maximum !== undefined) input.max = field.maximum;
-    if (field.step !== undefined) input.step = field.step;
-    if (field.maximumLength !== undefined) input.maxLength = field.maximumLength;
+  function registerModule(moduleId, initializer) {
+    if (!/^[a-z][a-z0-9-]*$/.test(moduleId) || typeof initializer !== "function") {
+      throw new Error("Initialiseur de module invalide.");
+    }
+    if (moduleInitializers.has(moduleId)) {
+      throw new Error(`Le module ${moduleId} est déjà enregistré.`);
+    }
+    moduleInitializers.set(moduleId, initializer);
   }
 
-  function createStandardField(field) {
-    const wrapper = createElement("div", {
-      className: `field${field.wide ? " full" : ""}`
+  function loadStyle(moduleId, url) {
+    const safeUrl = assertModuleUrl(moduleId, url);
+    if (loadedStyles.has(safeUrl)) return loadedStyles.get(safeUrl);
+
+    const loading = new Promise((resolve, reject) => {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = safeUrl;
+      link.addEventListener("load", resolve, { once: true });
+      link.addEventListener("error", () => {
+        reject(new Error(`Impossible de charger ${safeUrl}.`));
+      }, { once: true });
+      document.head.appendChild(link);
     });
-    const label = createElement("label", {
-      className: "field-label",
-      text: field.label
+    loadedStyles.set(safeUrl, loading);
+    return loading;
+  }
+
+  function loadScript(moduleId, url) {
+    const safeUrl = assertModuleUrl(moduleId, url);
+    if (loadedScripts.has(safeUrl)) return loadedScripts.get(safeUrl);
+
+    const loading = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = safeUrl;
+      script.addEventListener("load", resolve, { once: true });
+      script.addEventListener("error", () => {
+        reject(new Error(`Impossible de charger ${safeUrl}.`));
+      }, { once: true });
+      document.head.appendChild(script);
     });
-    label.htmlFor = `setting-${field.key}`;
-
-    let input;
-    if (field.type === "select") {
-      input = document.createElement("select");
-      for (const optionDefinition of field.options) {
-        const option = document.createElement("option");
-        option.value = optionDefinition.value;
-        option.textContent = optionDefinition.label;
-        input.appendChild(option);
-      }
-    } else {
-      input = document.createElement("input");
-      input.type = field.type === "color"
-        ? "color"
-        : ["integer", "number"].includes(field.type)
-          ? "number"
-          : "text";
-    }
-
-    input.id = `setting-${field.key}`;
-    configureInput(input, field);
-    wrapper.appendChild(label);
-
-    if (field.unit) {
-      const unitWrapper = createElement("div", { className: "unit-input" });
-      unitWrapper.append(input, createElement("span", {
-        className: "unit",
-        text: field.unit
-      }));
-      wrapper.appendChild(unitWrapper);
-    } else {
-      wrapper.appendChild(input);
-    }
-
-    if (field.description) {
-      wrapper.appendChild(createElement("small", {
-        className: "field-description",
-        text: field.description
-      }));
-    }
-
-    return wrapper;
+    loadedScripts.set(safeUrl, loading);
+    return loading;
   }
 
-  function createGroup(group) {
-    const container = group.presentation === "card"
-      ? createElement("div", { className: "card" })
-      : document.createElement("details");
-
-    if (container.tagName === "DETAILS") {
-      container.open = Boolean(group.open);
-      container.appendChild(createElement("summary", { text: group.title }));
-    } else {
-      container.appendChild(createElement("h2", {
-        className: "section-title",
-        text: group.title
-      }));
+  async function loadFragment(moduleId, url) {
+    const safeUrl = assertModuleUrl(moduleId, url);
+    const response = await fetch(safeUrl, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Impossible de charger ${safeUrl} (${response.status}).`);
     }
-
-    const content = container.tagName === "DETAILS"
-      ? createElement("div", { className: "details-content" })
-      : container;
-    const grid = createElement("div", { className: "grid" });
-    let hasGridFields = false;
-
-    for (const field of group.fields) {
-      if (field.type === "boolean") {
-        content.appendChild(createSwitchField(field));
-      } else {
-        grid.appendChild(createStandardField(field));
-        hasGridFields = true;
-      }
-    }
-
-    if (hasGridFields) content.appendChild(grid);
-    if (content !== container) container.appendChild(content);
-    return container;
+    return response.text();
   }
 
-  function renderSettingsForm() {
-    transmissionSettings.replaceChildren();
-    displaySettings.replaceChildren();
-
-    for (const group of schema.groups) {
-      const target = group.tab === "transmission"
-        ? transmissionSettings
-        : displaySettings;
-      target.appendChild(createGroup(group));
-    }
-
-    bindSettingEvents();
+  function activateTab(tabKey) {
+    let found = false;
+    document.querySelectorAll("[data-control-tab]").forEach((button) => {
+      const active = button.dataset.controlTab === tabKey;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-selected", String(active));
+      if (active) found = true;
+    });
+    document.querySelectorAll("[data-control-panel]").forEach((panel) => {
+      panel.classList.toggle("active", panel.dataset.controlPanel === tabKey);
+    });
+    if (found) sessionStorage.setItem("miao-active-tab", tabKey);
+    return found;
   }
 
-  function renderPlayer(configuration) {
-    playerActions.replaceChildren();
-    shortcutList.replaceChildren();
+  async function createModuleInterface(moduleDefinition) {
+    const { id, control } = moduleDefinition;
+    await Promise.all((control.styles || []).map((style) => loadStyle(id, style)));
 
-    for (const action of configuration.actions) {
-      const button = createElement("button", {
-        className: `action ${action.tone || ""}`.trim(),
-        text: action.label
-      });
+    for (const tab of control.tabs || []) {
+      const tabKey = `${id}:${tab.id}`;
+      const button = document.createElement("button");
+      button.className = "tab";
       button.type = "button";
-      button.addEventListener("click", () => sendPlayerAction(action));
-      playerActions.appendChild(button);
+      button.dataset.controlTab = tabKey;
+      button.setAttribute("role", "tab");
+      button.setAttribute("aria-selected", "false");
+      button.textContent = tab.label;
+      button.addEventListener("click", () => activateTab(tabKey));
+      tabsElement.appendChild(button);
 
-      shortcutList.append(
-        createElement("span", { text: action.label }),
-        createElement("code", {
-          text: `${configuration.shortcutPrefix}${action.key}`
-        })
-      );
+      const panel = document.createElement("section");
+      panel.className = "panel";
+      panel.dataset.controlPanel = tabKey;
+      panel.dataset.module = id;
+      panel.setAttribute("role", "tabpanel");
+      panel.innerHTML = await loadFragment(id, tab.fragment);
+      panelsElement.appendChild(panel);
+    }
+
+    for (const script of control.scripts || []) {
+      await loadScript(id, script);
+    }
+
+    if ((control.scripts || []).length > 0) {
+      const initializer = moduleInitializers.get(id);
+      if (!initializer) {
+        throw new Error(`Le module ${id} n’a enregistré aucun initialiseur.`);
+      }
+      await initializer(Object.freeze({
+        id,
+        name: moduleDefinition.name,
+        version: moduleDefinition.version
+      }));
     }
   }
 
-  function getSettingInputs() {
-    return Array.from(document.querySelectorAll("[data-setting]"));
-  }
-
-  function fillSettings(nextSettings) {
-    settings = { ...getDefaultSettings(), ...(nextSettings || {}) };
-
-    for (const input of getSettingInputs()) {
-      const value = settings[input.dataset.setting];
-      if (input.type === "checkbox") input.checked = Boolean(value);
-      else input.value = value;
-    }
-  }
-
-  function collectSettings() {
-    const nextSettings = { ...settings };
-
-    for (const input of getSettingInputs()) {
-      const key = input.dataset.setting;
-      if (input.type === "checkbox") nextSettings[key] = input.checked;
-      else if (input.type === "number") nextSettings[key] = Number(input.value);
-      else nextSettings[key] = input.value;
-    }
-
-    return nextSettings;
-  }
-
-  function renderStats() {
-    const text = normalizeLineEndings(messageInput.value);
-    const characters = text.length;
-    const lines = text.length === 0 ? 0 : text.split("\n").length;
-    statsElement.textContent = `${lines} ${lines === 1 ? "ligne" : "lignes"} · ${characters} ${characters === 1 ? "caractère" : "caractères"}`;
-    statsElement.classList.toggle("warning", lines > 6 || characters > 260);
-  }
-
-  async function sendMessage(text, revision) {
-    setStatus("Synchronisation de la transmission…");
-    const result = await window.MiaoApi.postJson("/api/mission", { text });
-    lastSavedMessage = normalizeMission(result.mission);
-    if (revision === messageEditRevision) {
-      messageInput.value = lastSavedMessage;
-      renderStats();
-      setStatus(lastSavedMessage ? "Transmission synchronisée." : "Transmission vide enregistrée.", "ok");
-    }
-  }
-
-  function queueMessageSave() {
-    if (!applicationReady) {
-      setStatus("La console n’est pas encore prête.", "error");
-      return;
-    }
-
-    clearTimeout(messageTimer);
-    const snapshot = normalizeMission(messageInput.value);
-    const revision = messageEditRevision;
-    messageQueue = messageQueue
-      .then(() => sendMessage(snapshot, revision))
-      .catch((error) => setStatus(error.message, "error"));
-  }
-
-  function scheduleMessageSave() {
-    clearTimeout(messageTimer);
-    setStatus("Modification de la transmission en attente…");
-    messageTimer = setTimeout(queueMessageSave, 650);
-  }
-
-  async function sendSettings(nextSettings, revision) {
-    setStatus("Application des réglages…");
-    const result = await window.MiaoApi.postJson("/api/settings", nextSettings);
-    settings = { ...getDefaultSettings(), ...result.settings };
-    if (revision === settingsEditRevision) {
-      fillSettings(result.settings);
-      setStatus("Réglages appliqués à l’affichage.", "ok");
-    }
-  }
-
-  function queueSettingsSave() {
-    if (!applicationReady || !schema) {
-      setStatus("La configuration n’est pas encore chargée.", "error");
-      return;
-    }
-
-    clearTimeout(settingsTimer);
-    const snapshot = collectSettings();
-    const revision = settingsEditRevision;
-    settingsQueue = settingsQueue
-      .then(() => sendSettings(snapshot, revision))
-      .catch((error) => setStatus(error.message, "error"));
-  }
-
-  function scheduleSettingsSave(immediate = false) {
-    clearTimeout(settingsTimer);
-    setStatus("Modification des réglages en attente…");
-    settingsTimer = setTimeout(queueSettingsSave, immediate ? 0 : 450);
-  }
-
-  function bindSettingEvents() {
-    for (const input of getSettingInputs()) {
-      input.addEventListener("input", () => {
-        settingsEditRevision += 1;
-        if (input.type !== "checkbox") scheduleSettingsSave();
-      });
-      input.addEventListener("change", () => {
-        if (input.type === "checkbox" || input.tagName === "SELECT") {
-          scheduleSettingsSave(true);
-        }
-      });
-    }
-  }
-
-  async function sendPlayerAction(action) {
-    if (action.confirmation && !window.confirm(action.confirmation)) return;
-
+  async function initialize() {
     try {
-      setStatus("Transmission de la commande à Moobot…");
-      const result = await window.MiaoApi.postJson("/api/player", {
-        action: action.id
-      });
-      setStatus(result.message || "Commande envoyée.", "ok");
-    } catch (error) {
-      setStatus(error.message, "error");
-    }
-  }
+      const result = await window.MiaoApi.getJson("/api/modules");
+      const modules = Array.isArray(result.modules) ? result.modules : [];
+      if (modules.length === 0) {
+        throw new Error("Aucun module ne fournit d’interface de contrôle.");
+      }
 
-  async function loadApplication() {
-    try {
-      const [stateResult, schemaResult, playerResult] = await Promise.all([
-        window.MiaoApi.getJson("/api/state"),
-        window.MiaoApi.getJson("/api/schema"),
-        window.MiaoApi.getJson("/api/player/actions")
-      ]);
+      for (const moduleDefinition of modules) {
+        await createModuleInterface(moduleDefinition);
+      }
 
-      schema = schemaResult.schema;
-      renderSettingsForm();
-      renderPlayer(playerResult.configuration);
-      fillSettings(stateResult.settings);
-      messageInput.value = normalizeMission(stateResult.mission);
-      lastSavedMessage = messageInput.value;
-      currentSongElement.textContent = stateResult.song || "Aucun morceau détecté";
-      renderStats();
-      applicationReady = true;
+      const preferredTab = sessionStorage.getItem("miao-active-tab");
+      const firstTab = document.querySelector("[data-control-tab]")?.dataset.controlTab;
+      if (!preferredTab || !activateTab(preferredTab)) activateTab(firstTab);
       setStatus("Console connectée.", "ok");
     } catch (error) {
-      setStatus(`Impossible de charger M.I.A.O. : ${error.message}`, "error");
+      setStatus(`Impossible de charger la console : ${error.message}`, "error");
     }
   }
 
-  async function reloadState() {
-    const result = await window.MiaoApi.getJson("/api/state");
-    settingsEditRevision += 1;
-    messageEditRevision += 1;
-    fillSettings(result.settings);
-    messageInput.value = normalizeMission(result.mission);
-    lastSavedMessage = messageInput.value;
-    currentSongElement.textContent = result.song || "Aucun morceau détecté";
-    renderStats();
-  }
-
-  async function refreshSong() {
-    try {
-      const result = await window.MiaoApi.getJson("/api/song");
-      currentSongElement.textContent = result.song || "Aucun morceau détecté";
-    } catch (_) {
-      // The next refresh retries automatically.
-    }
-  }
-
-  document.querySelectorAll("[data-tab]").forEach((button) => {
-    button.addEventListener("click", () => {
-      document.querySelectorAll("[data-tab]").forEach((tab) => tab.classList.remove("active"));
-      document.querySelectorAll("[data-panel]").forEach((panel) => panel.classList.remove("active"));
-      button.classList.add("active");
-      document.querySelector(`[data-panel="${button.dataset.tab}"]`).classList.add("active");
-    });
-  });
-
-  messageInput.addEventListener("input", () => {
-    messageEditRevision += 1;
-    renderStats();
-    scheduleMessageSave();
-  });
-
-  messageInput.addEventListener("keydown", (event) => {
-    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
-      event.preventDefault();
-      queueMessageSave();
-    }
-  });
-
-  document.getElementById("save-message").addEventListener("click", queueMessageSave);
-  document.getElementById("save-settings").addEventListener("click", queueSettingsSave);
-
-  document.getElementById("reload").addEventListener("click", async () => {
-    if (!applicationReady) {
-      setStatus("La console n’est pas encore prête.", "error");
-      return;
-    }
-
-    const missionChanged = normalizeMission(messageInput.value) !== lastSavedMessage;
-    const settingsChanged = schema &&
-      JSON.stringify(collectSettings()) !== JSON.stringify(settings);
-
-    if ((missionChanged || settingsChanged) &&
-        !window.confirm("Abandonner les modifications non enregistrées ?")) {
-      return;
-    }
-
-    try {
-      clearTimeout(messageTimer);
-      clearTimeout(settingsTimer);
-      await Promise.all([messageQueue, settingsQueue]);
-      await reloadState();
-      setStatus("Dernière version rechargée.", "ok");
-    } catch (error) {
-      setStatus(error.message, "error");
-    }
-  });
-
-  document.getElementById("reset-settings").addEventListener("click", async () => {
-    if (!applicationReady || !schema) {
-      setStatus("La configuration n’est pas encore chargée.", "error");
-      return;
-    }
-    if (!window.confirm("Rétablir tous les réglages d’affichage par défaut ?")) return;
-
-    try {
-      clearTimeout(settingsTimer);
-      const revision = settingsEditRevision + 1;
-      settingsEditRevision = revision;
-      settingsQueue = settingsQueue
-        .then(async () => {
-          const result = await window.MiaoApi.postJson("/api/settings/reset");
-          settings = { ...getDefaultSettings(), ...result.settings };
-          if (revision === settingsEditRevision) {
-            fillSettings(result.settings);
-            setStatus("Valeurs par défaut restaurées.", "ok");
-          }
-        })
-        .catch((error) => setStatus(error.message, "error"));
-      await settingsQueue;
-    } catch (error) {
-      setStatus(error.message, "error");
-    }
-  });
-
-  loadApplication();
-  setInterval(refreshSong, 1000);
+  window.MiaoControlHost = Object.freeze({ registerModule, setStatus });
+  initialize();
 })();

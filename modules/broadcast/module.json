@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "broadcast",
+  "name": "Radio et transmission",
+  "version": "1.0.0",
+  "enabled": true,
+  "entry": "server/Miao.Broadcast.psm1",
+  "hooks": {
+    "initialize": "Initialize-MiaoBroadcastModule",
+    "update": "Update-MiaoBroadcastModule",
+    "route": "Invoke-MiaoBroadcastRoute"
+  },
+  "updateIntervalMs": 500,
+  "public": {
+    "root": "public",
+    "aliases": [
+      { "route": "/", "file": "widget.html" },
+      { "route": "/miao-widget.html", "file": "widget.html" },
+      { "route": "/assets/widget.css", "file": "css/widget.css" },
+      { "route": "/assets/widget-core.js", "file": "js/widget-core.js" },
+      { "route": "/assets/widget.js", "file": "js/widget.js" }
+    ]
+  },
+  "control": {
+    "styles": [
+      "/modules/broadcast/css/control.css"
+    ],
+    "scripts": [
+      "/modules/broadcast/js/control.js"
+    ],
+    "tabs": [
+      {
+        "id": "transmission",
+        "label": "Transmission",
+        "fragment": "/modules/broadcast/control/transmission.html"
+      },
+      {
+        "id": "display",
+        "label": "Affichage",
+        "fragment": "/modules/broadcast/control/display.html"
+      },
+      {
+        "id": "radio",
+        "label": "Radio",
+        "fragment": "/modules/broadcast/control/radio.html"
+      }
+    ]
+  }
+}
