@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Console M.I.A.O.</title>
+  <link rel="stylesheet" href="/assets/control.css">
+  <script src="/assets/api.js" defer></script>
+  <script src="/assets/control.js" defer></script>
+</head>
+<body>
+  <main class="console">
+    <header>
+      <h1>M.I.A.O. // CONSOLE DE BORD</h1>
+      <p class="subtitle">Transmission, apparence et radio réunies dans OBS.</p>
+    </header>
+
+    <nav class="tabs" aria-label="Sections de la console">
+      <button class="tab active" type="button" data-tab="transmission">Transmission</button>
+      <button class="tab" type="button" data-tab="display">Affichage</button>
+      <button class="tab" type="button" data-tab="radio">Radio</button>
+    </nav>
+
+    <section class="panel active" data-panel="transmission">
+      <div id="transmission-settings"></div>
+
+      <div class="card">
+        <label class="field-label" for="message">Texte de la transmission</label>
+        <textarea id="message" maxlength="2000" rows="8" spellcheck="true" placeholder="M.I.A.O. // TRANSMISSION DE BORD&#10;Écris ici le message adapté à ton stream…"></textarea>
+        <div class="meta">
+          <span id="stats" class="stats">0 ligne · 0 caractère</span>
+          <span>Conseil : 6 lignes / 260 caractères</span>
+        </div>
+        <div class="actions">
+          <button id="save-message" type="button" class="action primary">Synchroniser</button>
+          <button id="reload" type="button" class="action">Recharger</button>
+        </div>
+      </div>
+
+      <p class="help">Si les deux pages sont désactivées, le widget devient entièrement transparent. Si une seule page est active, elle reste affichée sans être retapée en boucle.</p>
+    </section>
+
+    <section class="panel" data-panel="display">
+      <div id="display-settings"></div>
+      <div class="actions">
+        <button id="save-settings" type="button" class="action primary">Appliquer maintenant</button>
+        <button id="reset-settings" type="button" class="action">Valeurs par défaut</button>
+      </div>
+      <p class="help">Chaque modification est aussi enregistrée automatiquement après une courte pause.</p>
+    </section>
+
+    <section class="panel" data-panel="radio">
+      <div class="now-playing">
+        <small>Lecture en cours</small>
+        <strong id="current-song">Aucune information reçue</strong>
+      </div>
+
+      <div id="player-actions" class="player-grid"></div>
+      <p class="help">Pause et mute sont des bascules : Moobot ne communique pas leur état actuel à M.I.A.O.</p>
+      <div id="shortcut-list" class="shortcut-list" aria-label="Raccourcis configurés"></div>
+    </section>
+
+    <div id="status" class="status">Connexion à M.I.A.O…</div>
+  </main>
+</body>
+</html>

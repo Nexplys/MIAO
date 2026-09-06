@@ -1,0 +1,13 @@
+{
+  "shortcutPrefix": "Ctrl+Alt+Shift+",
+  "actions": [
+    { "id": "start", "key": "1", "label": "▶ Démarrer", "tone": "primary", "message": "Démarrage demandé." },
+    { "id": "pause", "key": "2", "label": "⏯ Pause / reprendre", "tone": "normal", "message": "Pause / reprise demandée." },
+    { "id": "skip", "key": "3", "label": "⏭ Morceau suivant", "tone": "normal", "message": "Passage au morceau suivant demandé." },
+    { "id": "mute", "key": "4", "label": "🔇 Mute / réactiver", "tone": "normal", "message": "Bascule du mute demandée." },
+    { "id": "volumeDown", "key": "5", "label": "− Volume", "tone": "normal", "message": "Diminution du volume demandée." },
+    { "id": "volumeUp", "key": "6", "label": "+ Volume", "tone": "normal", "message": "Augmentation du volume demandée." },
+    { "id": "addToPlaylist", "key": "7", "label": "★ Ajouter à la playlist secondaire", "tone": "wide", "message": "Ajout à la playlist demandé." },
+    { "id": "blacklist", "key": "8", "label": "⚠ Blacklister le morceau et son demandeur", "tone": "danger wide", "message": "Blacklist demandée.", "confirmation": "Blacklister ce morceau ET la personne qui l’a demandé ?" }
+  ]
+}

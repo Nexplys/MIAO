@@ -1,0 +1,35 @@
+# Donnees creees et modifiees pendant l'execution
+miao-mission.txt
+miao-settings.json
+miao-settings.json.*.bak
+
+# Fichiers temporaires des ecritures atomiques
+.*.tmp
+
+# Réglages propres à cette machine
+miao-settings.json
+miao-mission.txt
+config/local.json
+config/*.local.json
+*.local.json
+
+# Fichiers fournis ou générés par Moobot
+nexplys.song-player.current.txt
+nexplys.song-player.current.cleaned.txt
+
+# Données temporaires de MIAO
+var/
+logs/
+cache/
+*.log
+*.tmp
+*.bak
+
+# Fichiers des éditeurs et de Windows
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini
+
+# Sauvegardes et archives
+*.zip

@@ -1,0 +1,148 @@
+{
+  "version": 3,
+  "groups": [
+    {
+      "id": "pages",
+      "tab": "transmission",
+      "title": "Pages actives",
+      "presentation": "card",
+      "open": true,
+      "fields": [
+        {
+          "key": "radioEnabled",
+          "type": "boolean",
+          "default": true,
+          "label": "Radio de bord",
+          "description": "Autorise l’affichage du morceau en cours."
+        },
+        {
+          "key": "radioAutoHideWhenEmpty",
+          "type": "boolean",
+          "default": false,
+          "label": "Masquage automatique",
+          "description": "Cache la radio lorsque Moobot ne fournit aucun titre."
+        },
+        {
+          "key": "missionEnabled",
+          "type": "boolean",
+          "default": true,
+          "label": "Transmission secondaire",
+          "description": "Autorise l’affichage du texte libre."
+        }
+      ]
+    },
+    {
+      "id": "timing",
+      "tab": "display",
+      "title": "Rythme et animation",
+      "presentation": "details",
+      "open": true,
+      "fields": [
+        { "key": "radioHoldSeconds", "type": "integer", "default": 80, "minimum": 1, "maximum": 3600, "unit": "s", "label": "Durée radio" },
+        { "key": "missionHoldSeconds", "type": "integer", "default": 20, "minimum": 1, "maximum": 3600, "unit": "s", "label": "Durée transmission" },
+        { "key": "keyMs", "type": "integer", "default": 24, "minimum": 0, "maximum": 500, "unit": "ms", "label": "Vitesse par lettre" },
+        { "key": "keyVarianceMs", "type": "integer", "default": 15, "minimum": 0, "maximum": 250, "unit": "ms", "label": "Variation aléatoire" },
+        { "key": "newlinePauseMs", "type": "integer", "default": 90, "minimum": 0, "maximum": 2000, "unit": "ms", "label": "Pause nouvelle ligne" },
+        { "key": "punctuationPauseMs", "type": "integer", "default": 75, "minimum": 0, "maximum": 2000, "unit": "ms", "label": "Pause ponctuation" },
+        { "key": "slashPauseMs", "type": "integer", "default": 25, "minimum": 0, "maximum": 1000, "unit": "ms", "label": "Pause sur /" },
+        { "key": "fadeMs", "type": "integer", "default": 280, "minimum": 0, "maximum": 5000, "unit": "ms", "label": "Durée du fondu" },
+        { "key": "cursorBlinkMs", "type": "integer", "default": 760, "minimum": 100, "maximum": 5000, "unit": "ms", "label": "Clignotement curseur" },
+        { "key": "pollMs", "type": "integer", "default": 500, "minimum": 100, "maximum": 5000, "unit": "ms", "label": "Actualisation" },
+        { "key": "typewriterEnabled", "type": "boolean", "default": true, "label": "Animation lettre par lettre" },
+        { "key": "cursorEnabled", "type": "boolean", "default": true, "label": "Curseur clignotant" }
+      ]
+    },
+    {
+      "id": "typography",
+      "tab": "display",
+      "title": "Typographie",
+      "presentation": "details",
+      "open": false,
+      "fields": [
+        { "key": "fontFamily", "type": "string", "default": "Consolas, \"Lucida Console\", monospace", "maximumLength": 160, "required": true, "wide": true, "label": "Famille de police CSS" },
+        { "key": "baseFontSize", "type": "integer", "default": 30, "minimum": 8, "maximum": 120, "unit": "px", "label": "Texte principal" },
+        { "key": "headerFontSize", "type": "integer", "default": 28, "minimum": 8, "maximum": 120, "unit": "px", "label": "En-tête" },
+        { "key": "labelScale", "type": "number", "default": 0.9, "minimum": 0.4, "maximum": 2, "step": 0.05, "label": "Échelle seconde ligne" },
+        { "key": "lineHeight", "type": "number", "default": 1.18, "minimum": 0.7, "maximum": 3, "step": 0.05, "label": "Interligne" },
+        { "key": "fontWeight", "type": "integer", "default": 700, "minimum": 100, "maximum": 900, "step": 100, "label": "Graisse" }
+      ]
+    },
+    {
+      "id": "density",
+      "tab": "display",
+      "title": "Réduction automatique",
+      "presentation": "details",
+      "open": false,
+      "fields": [
+        { "key": "autoCompactEnabled", "type": "boolean", "default": true, "label": "Adapter les textes longs", "description": "Réduit automatiquement les tailles selon la longueur." },
+        { "key": "compactThreshold", "type": "integer", "default": 115, "minimum": 20, "maximum": 2000, "label": "Seuil compact" },
+        { "key": "veryCompactThreshold", "type": "integer", "default": 165, "minimum": 20, "maximum": 3000, "minimumFrom": "compactThreshold", "label": "Seuil très compact" },
+        { "key": "compactFontSize", "type": "integer", "default": 26, "minimum": 8, "maximum": 120, "unit": "px", "label": "Texte compact" },
+        { "key": "compactHeaderSize", "type": "integer", "default": 26, "minimum": 8, "maximum": 120, "unit": "px", "label": "En-tête compact" },
+        { "key": "veryCompactFontSize", "type": "integer", "default": 23, "minimum": 8, "maximum": 120, "unit": "px", "label": "Texte très compact" },
+        { "key": "veryCompactHeaderSize", "type": "integer", "default": 24, "minimum": 8, "maximum": 120, "unit": "px", "label": "En-tête très compact" }
+      ]
+    },
+    {
+      "id": "layout",
+      "tab": "display",
+      "title": "Mise en page",
+      "presentation": "details",
+      "open": false,
+      "fields": [
+        { "key": "songLineLength", "type": "integer", "default": 32, "minimum": 8, "maximum": 120, "label": "Longueur ligne morceau" },
+        { "key": "contentWidth", "type": "integer", "default": 100, "minimum": 10, "maximum": 100, "unit": "%", "label": "Largeur du contenu" },
+        { "key": "paddingX", "type": "integer", "default": 30, "minimum": 0, "maximum": 400, "unit": "px", "label": "Marge horizontale" },
+        { "key": "paddingY", "type": "integer", "default": 24, "minimum": 0, "maximum": 400, "unit": "px", "label": "Marge verticale" },
+        {
+          "key": "horizontalAlign",
+          "type": "select",
+          "default": "left",
+          "label": "Alignement horizontal",
+          "options": [
+            { "value": "left", "label": "Gauche" },
+            { "value": "center", "label": "Centre" },
+            { "value": "right", "label": "Droite" }
+          ]
+        },
+        {
+          "key": "verticalAlign",
+          "type": "select",
+          "default": "top",
+          "label": "Alignement vertical",
+          "options": [
+            { "value": "top", "label": "Haut" },
+            { "value": "center", "label": "Centre" },
+            { "value": "bottom", "label": "Bas" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "colors",
+      "tab": "display",
+      "title": "Couleurs",
+      "presentation": "details",
+      "open": false,
+      "fields": [
+        { "key": "textColor", "type": "color", "default": "#ffffff", "label": "Texte" },
+        { "key": "headerColor", "type": "color", "default": "#fff2c7", "label": "En-tête" },
+        { "key": "labelColor", "type": "color", "default": "#ffffff", "label": "Seconde ligne" },
+        { "key": "shadowColor", "type": "color", "default": "#000000", "label": "Ombre" },
+        { "key": "shadowOpacity", "type": "number", "default": 0.92, "minimum": 0, "maximum": 1, "step": 0.05, "label": "Opacité de l’ombre" }
+      ]
+    },
+    {
+      "id": "radioText",
+      "tab": "display",
+      "title": "Textes de la radio",
+      "presentation": "details",
+      "open": false,
+      "fields": [
+        { "key": "radioHeader", "type": "string", "default": "M.I.A.O. // RADIO DE BORD", "maximumLength": 100, "required": true, "wide": true, "label": "En-tête" },
+        { "key": "radioLabel", "type": "string", "default": "LECTURE EN COURS", "maximumLength": 100, "required": true, "wide": true, "label": "Libellé" },
+        { "key": "radioEmptyText", "type": "string", "default": "AUCUNE TRANSMISSION AUDIO", "maximumLength": 140, "required": true, "wide": true, "label": "Aucun morceau" }
+      ]
+    }
+  ]
+}
